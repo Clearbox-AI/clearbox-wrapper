@@ -1,0 +1,42 @@
+name: Lint & Test
+
+on: [push]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [3.6, 3.7]
+
+        steps:
+        - uses: actions/checkout@v2
+        - name: Setup Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v1
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Cache pip
+          uses: actions/cache@v1
+          id: cache
+          with:
+            path: ~/.cache/pip 
+            key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+            restore-keys: |
+                ${{ runner.os }}-pip-
+                ${{ runner.os }}-
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+            pip install -e .
+        - name: Lint with flake8
+          run: |
+            pip install flake8
+            flake8 clearbox_wrapper --count --select=E9,F63,F7,F82 --show-source --statistics
+            flake8 clearbox_wrapper --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+        - name: Test with pytest
+          run: |
+            pip install pytest
+            pip install pytest-cov
+            pip install pytest-lazy-fixture
+            pytest test -v --maxfail=3 --cache-clear --durations=0 --cov-report term:skip-covered --cov=clearbox_wrapper
