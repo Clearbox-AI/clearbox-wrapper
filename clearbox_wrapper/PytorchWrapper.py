@@ -1,14 +1,13 @@
-import pickle
+import cloudpickle
 
 from .ClearBoxWrapper import ClearBoxWrapper
 
 
-class SklearnWrapper(ClearBoxWrapper):
+class PytorchWrapper(ClearBoxWrapper):
     def __init__(self, model):
         super().__init__()
 
         if type(model) is str:
-            with open(model, "rb") as model_file:
-                self.model = pickle.load(model_file)
+            self.model = cloudpickle.load(open(model, 'rb'))
         else:
             self.model = model

@@ -1,19 +1,22 @@
 import cloudpickle
 
-
 class ClearBoxWrapper(object):
     def __init__(self):
         pass
-
-    def transform(self):
-        pass
-
-    def predict(self):
+    
+    def predict(self, X):
         pass
 
     def dump(self, path):
-        with open(path, 'wb') as wrapper_file:
-            cloudpickle.dump(self, wrapper_file)
+        cloudpickle.dump(self, open(path, 'wb'))
 
     def dumps(self):
         return cloudpickle.dumps(self)
+
+    def load(path):
+        model = cloudpickle.load(open(path, 'rb'))
+        return model
+
+    def loads(wrapper):
+        model = cloudpickle.loads(wrapper)
+        return model
