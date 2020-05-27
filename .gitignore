@@ -137,3 +137,4 @@ dmypy.json
 examples/*.model
 examples/resources/cifar-10-batches-py
 examples/resources/cifar-10-python.tar.gz
+examples/keras_fashion_mnist_model
