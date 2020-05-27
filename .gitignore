@@ -135,4 +135,5 @@ dmypy.json
 
 # Examples models
 examples/*.model
-examples/datasets/cifar-10-*
+examples/resources/cifar-10-batches-py
+examples/resources/cifar-10-python.tar.gz
