@@ -13,10 +13,12 @@ class ClearBoxWrapper(object):
     def dumps(self):
         return cloudpickle.dumps(self)
 
+    @staticmethod
     def load(path):
         model = cloudpickle.load(open(path, 'rb'))
         return model
 
+    @staticmethod
     def loads(wrapper):
         model = cloudpickle.loads(wrapper)
         return model

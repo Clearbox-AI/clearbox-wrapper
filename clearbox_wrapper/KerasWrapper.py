@@ -25,12 +25,14 @@ class KerasWrapper(ClearBoxWrapper):
         self.model = None
         return cloudpickle.dumps(self)
 
+    @staticmethod
     def load(path):
         from tensorflow import keras
         clearbox_wrapper = cloudpickle.load(open(path, 'rb'))
         clearbox_wrapper.model = keras.models.load_model(clearbox_wrapper.model_path)
         return clearbox_wrapper
 
+    @staticmethod
     def loads(wrapper):
         from tensorflow import keras
         clearbox_wrapper = cloudpickle.loads(wrapper)
