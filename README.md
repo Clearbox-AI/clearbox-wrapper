@@ -1,7 +1,7 @@
-# ClearBox Wrapper
+# Clearbox Wrapper
 
 
-ClearBox Wrapper is an agnostic wrapper for the most used machine learning frameworks, with the aim of facilitating the transfer of models between different cloud environments and of providing a common interface for generating output predictions.
+Clearbox Wrapper is an agnostic wrapper for the most used machine learning frameworks, with the aim of facilitating the transfer of models between different cloud environments and of providing a common interface for generating output predictions.
 
 ## Usage
 
@@ -42,20 +42,20 @@ foo.predict(data)
 
 #### Sklearn
 
-* Boston Housing Dataset - [Notebook](https://github.com/ClearBox-AI/clearbox-wrapper/blob/master/examples/sklearn/sklearn_boston_dataset.ipynb)
+* Boston Housing Dataset - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/sklearn/sklearn_boston_dataset.ipynb)
 
 #### XGBoost
 
-* Pima Indians Diabetes - [Notebook](https://github.com/ClearBox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb) 
+* Pima Indians Diabetes - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb) 
 
 #### PyTorch
 
-* CIFAR-10 - [Notebook](https://github.com/ClearBox-AI/clearbox-wrapper/blob/master/examples/pytorch/pytorch_cifar10_dataset.ipynb)
+* CIFAR-10 - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/pytorch/pytorch_cifar10_dataset.ipynb)
 
 #### Keras
 
-* Fashion MNIST - [Notebook](https://github.com/ClearBox-AI/clearbox-wrapper/blob/master/examples/keras/keras_fashion_mnist_dataset.ipynb)
+* Fashion MNIST - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/keras/keras_fashion_mnist_dataset.ipynb)
 
 ## License
 
-[Apache License 2.0](https://github.com/ClearBox-AI/clearbox-wrapper/blob/master/LICENSE)
+[Apache License 2.0](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/LICENSE)
