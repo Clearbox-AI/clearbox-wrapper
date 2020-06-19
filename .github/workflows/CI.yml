@@ -34,9 +34,3 @@ jobs:
             pip install flake8
             flake8 clearbox_wrapper --count --select=E9,F63,F7,F82 --show-source --statistics
             flake8 clearbox_wrapper --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
-        # - name: Test with pytest
-        #   run: |
-        #     pip install pytest
-        #     pip install pytest-cov
-        #     pip install pytest-lazy-fixture
-        #     pytest test -v --maxfail=3 --cache-clear --durations=0 --cov-report term:skip-covered --cov=clearbox_wrapper

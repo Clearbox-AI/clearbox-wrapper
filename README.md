@@ -1,7 +1,7 @@
 # Clearbox Wrapper
 
 
-Clearbox Wrapper is an agnostic wrapper for the most used machine learning frameworks, with the aim of facilitating the transfer of models between different cloud environments and of providing a common interface for generating output predictions.
+Clearbox Wrapper is an agnostic wrapper for the most used machine learning frameworks, with the aim to facilitate the transfer of models between different cloud environments and to provide a common interface for generating output predictions.
 
 ## Usage
 
