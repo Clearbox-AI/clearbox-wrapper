@@ -18,6 +18,6 @@ setup(
     packages=find_packages(include=['clearbox_wrapper', 'clearbox_wrapper.*']),
     install_requires=[
         'cloudpickle'
-    ]
+    ],
     keywords="ML wrapper machine learning model"
 )
