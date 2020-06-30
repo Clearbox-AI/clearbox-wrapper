@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "clearbox-wrapper"
+version = "0.1.0"
+description = "An agnostic wrapper for the most common frameworks of ML models."
+authors = ["Clearbox AI <info@clearbox.ai>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://clearbox.ai"
+repository = "https://github.com/ClearBox-AI/clearbox-wrapper"
+keywords = ["ML wrapper", "machine learning model"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+cloudpickle = "^1.4.1"
+
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

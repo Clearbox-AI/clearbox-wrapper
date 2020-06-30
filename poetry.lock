@@ -1,0 +1,17 @@
+[[package]]
+category = "main"
+description = "Extended pickling support for Python objects"
+name = "cloudpickle"
+optional = false
+python-versions = ">=3.5"
+version = "1.4.1"
+
+[metadata]
+content-hash = "06ec84af3450515ee181d60b8e0dc01b0ae415c3e39a205ffe669400f54b8b51"
+python-versions = "^3.7"
+
+[metadata.files]
+cloudpickle = [
+    {file = "cloudpickle-1.4.1-py3-none-any.whl", hash = "sha256:ff31298eca781315e097bc1f222d8045208c14063a0102cc89bd5899adb4abef"},
+    {file = "cloudpickle-1.4.1.tar.gz", hash = "sha256:0b6258a20a143603d53b037a20983016d4e978f554ec4f36b3d0895b947099ae"},
+]
