@@ -5,32 +5,39 @@ on: [push]
 jobs:
     build:
         runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.6, 3.7]
 
         steps:
-        - uses: actions/checkout@v2
-        - name: Setup Python ${{ matrix.python-version }}
+        - uses: actions/checkout@v1
+          with:
+            fetch-depth: 1
+
+        - name: Set up Python 3.7
           uses: actions/setup-python@v1
           with:
-            python-version: ${{ matrix.python-version }}
-        - name: Cache pip
+            python-version: 3.7
+        
+        - name: Install Poetry
+          uses: dschep/install-poetry-action@v1.2
+
+        - name: Cache Poetry virtualenv
           uses: actions/cache@v1
           id: cache
           with:
-            path: ~/.cache/pip 
-            key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+            path: ~/.virtualenvs
+            key: poetry-${{ hashFiles('**/poetry.lock') }}
             restore-keys: |
-                ${{ runner.os }}-pip-
-                ${{ runner.os }}-
-        - name: Install dependencies
+              poetry-${{ hashFiles('**/poetry.lock') }}
+
+        - name: Set Poetry config
           run: |
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt
-            pip install -e .
+            poetry config settings.virtualenvs.in-project false
+            poetry config settings.virtualenvs.path ~/.virtualenvs
+
+        - name: Install Dependencies
+          run: poetry install
+          if: steps.cache.outputs.cache-hit != 'true'
+        
         - name: Lint with flake8
           run: |
-            pip install flake8
-            flake8 clearbox_wrapper --count --select=E9,F63,F7,F82 --show-source --statistics
-            flake8 clearbox_wrapper --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+            poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+            poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
