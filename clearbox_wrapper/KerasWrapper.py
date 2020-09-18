@@ -1,3 +1,4 @@
+import os
 import cloudpickle
 
 from .ClearBoxWrapper import ClearBoxWrapper
@@ -10,7 +11,7 @@ class KerasWrapper(ClearBoxWrapper):
         if type(model) is str:
             from tensorflow import keras
             self.model = keras.models.load_model(model)
-            self.model_path = model
+            self.model_path = os.path.split(model)[1]
         else:
             self.model = model
             self.model_path = './keras_model'
@@ -29,7 +30,8 @@ class KerasWrapper(ClearBoxWrapper):
     def load(path):
         from tensorflow import keras
         clearbox_wrapper = cloudpickle.load(open(path, 'rb'))
-        clearbox_wrapper.model = keras.models.load_model(clearbox_wrapper.model_path)
+        print(os.path.split(path)[0] + clearbox_wrapper.model_path)
+        clearbox_wrapper.model = keras.models.load_model(os.path.split(path)[0] + clearbox_wrapper.model_path)
         return clearbox_wrapper
 
     @staticmethod
