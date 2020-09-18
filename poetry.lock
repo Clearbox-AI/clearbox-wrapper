@@ -4,7 +4,7 @@ description = "Extended pickling support for Python objects"
 name = "cloudpickle"
 optional = false
 python-versions = ">=3.5"
-version = "1.4.1"
+version = "1.6.0"
 
 [[package]]
 category = "dev"
@@ -82,8 +82,8 @@ python-versions = "^3.7"
 
 [metadata.files]
 cloudpickle = [
-    {file = "cloudpickle-1.4.1-py3-none-any.whl", hash = "sha256:ff31298eca781315e097bc1f222d8045208c14063a0102cc89bd5899adb4abef"},
-    {file = "cloudpickle-1.4.1.tar.gz", hash = "sha256:0b6258a20a143603d53b037a20983016d4e978f554ec4f36b3d0895b947099ae"},
+    {file = "cloudpickle-1.6.0-py3-none-any.whl", hash = "sha256:3a32d0eb0bc6f4d0c57fbc4f3e3780f7a81e6fee0fa935072884d58ae8e1cc7c"},
+    {file = "cloudpickle-1.6.0.tar.gz", hash = "sha256:9bc994f9e9447593bd0a45371f0e7ac7333710fcf64a4eb9834bf149f4ef2f32"},
 ]
 flake8 = [
     {file = "flake8-3.8.3-py2.py3-none-any.whl", hash = "sha256:15e351d19611c887e482fb960eae4d44845013cc142d42896e9862f775d8cf5c"},
