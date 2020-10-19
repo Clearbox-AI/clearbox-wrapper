@@ -129,12 +129,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
 # VS Code
 .vscode
 
-# Examples models
-examples/*.model
-examples/pytorch/resources/cifar-10-batches-py
-examples/pytorch/resources/cifar-10-python.tar.gz
-examples/keras/keras_fashion_mnist_model
+# pyenv
+.python-version
