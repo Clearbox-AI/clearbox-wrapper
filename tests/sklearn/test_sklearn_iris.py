@@ -1,3 +1,4 @@
+import tempfile
 import pytest
 
 import numpy as np
@@ -10,6 +11,8 @@ import sklearn.tree as tree
 import sklearn.ensemble as ensemble
 
 import sklearn.preprocessing as preprocessing
+
+import mlflow.pyfunc
 
 from clearbox_wrapper.clearbox_wrapper import ClearboxWrapper
 
@@ -55,7 +58,7 @@ def test_iris_sklearn_no_preprocessing(sklearn_model, data):
     fitted_model = sklearn_model.fit(x, y)
     wrapped_model = ClearboxWrapper(fitted_model)
     original_model_predictions = fitted_model.predict_proba(x[:5])
-    wrapped_model_predictions = wrapped_model.predict(x[:5])
+    wrapped_model_predictions = wrapped_model.predict(model_input=x[:5])
     np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)
 
 
@@ -97,7 +100,7 @@ def test_iris_sklearn_preprocessing(sklearn_model, sk_transformer, data):
     original_model_predictions = fitted_model.predict_proba(
         sk_transformer.transform(x[:5])
     )
-    wrapped_model_predictions = wrapped_model.predict(x[:5])
+    wrapped_model_predictions = wrapped_model.predict(model_input=x[:5])
     np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)
 
 
@@ -139,7 +142,7 @@ def test_iris_sklearn_preprocessing_with_function_transformer(
     fitted_model = sklearn_model.fit(x_transformed, y)
     wrapped_model = ClearboxWrapper(fitted_model, function_transformer)
     original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
-    wrapped_model_predictions = wrapped_model.predict(x[:5])
+    wrapped_model_predictions = wrapped_model.predict(model_input=x[:5])
     np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)
 
 
@@ -181,5 +184,19 @@ def test_iris_sklearn_preprocessing_with_custom_transformer(
     fitted_model = sklearn_model.fit(x_transformed, y)
     wrapped_model = ClearboxWrapper(fitted_model, custom_preprocessing)
     original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
-    wrapped_model_predictions = wrapped_model.predict(x[:5])
+    wrapped_model_predictions = wrapped_model.predict(model_input=x[:5])
     np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)
+
+
+def test_iris_sklearn_no_preprocessing_save(iris_data, tmp_path):
+    x, y = iris_data
+    model = linear_model.LogisticRegression()
+    fitted_model = model.fit(x, y)
+    wrapped_model = ClearboxWrapper(fitted_model)
+    model_path = tmp_path
+    print(model_path)
+    wrapped_model.save(model_path)
+    loaded_model = mlflow.pyfunc.load_model(model_path)
+    original_model_predictions = fitted_model.predict_proba(x[:5])
+    loaded_model_predictions = loaded_model.predict(x[:5])
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
