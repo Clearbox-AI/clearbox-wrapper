@@ -1,4 +1,3 @@
-import tempfile
 import pytest
 
 import numpy as np
@@ -41,6 +40,15 @@ def custom_transformer():
         return transformed_x
 
     return simple_preprocessor
+
+
+@pytest.fixture()
+def drop_column_transformer():
+    def drop_column(numpy_x):
+        transformed_x = np.delete(numpy_x, 0, axis=1)
+        return transformed_x
+
+    return drop_column
 
 
 @pytest.mark.parametrize(
@@ -188,15 +196,47 @@ def test_iris_sklearn_preprocessing_with_custom_transformer(
     np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)
 
 
-def test_iris_sklearn_no_preprocessing_save(iris_data, tmp_path):
-    x, y = iris_data
-    model = linear_model.LogisticRegression()
-    fitted_model = model.fit(x, y)
+@pytest.mark.parametrize(
+    "sklearn_model, data",
+    [
+        (linear_model.LogisticRegression(), pytest.lazy_fixture("iris_data")),
+        (svm.SVC(probability=True), pytest.lazy_fixture("iris_data")),
+        (neighbors.KNeighborsClassifier(), pytest.lazy_fixture("iris_data")),
+        (tree.DecisionTreeClassifier(), pytest.lazy_fixture("iris_data")),
+        (ensemble.RandomForestClassifier(), pytest.lazy_fixture("iris_data")),
+    ],
+)
+def test_iris_sklearn_no_preprocessing_save(sklearn_model, data, tmpdir):
+    x, y = data
+    fitted_model = sklearn_model.fit(x, y)
     wrapped_model = ClearboxWrapper(fitted_model)
-    model_path = tmp_path
-    print(model_path)
-    wrapped_model.save(model_path)
-    loaded_model = mlflow.pyfunc.load_model(model_path)
+    tmp_model_path = tmpdir + "/saved_model"
+    wrapped_model.save(tmp_model_path)
+    loaded_model = mlflow.pyfunc.load_model(str(tmp_model_path))
     original_model_predictions = fitted_model.predict_proba(x[:5])
     loaded_model_predictions = loaded_model.predict(x[:5])
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+
+def test_iris_sklearn_additional_preprocessing_without_preprocessing(iris_data):
+    x, y = iris_data
+    sk_transformer = preprocessing.StandardScaler()
+    model = linear_model.LogisticRegression()
+    x_transformed = sk_transformer.fit_transform(x)
+    fitted_model = model.fit(x_transformed, y)
+    with pytest.raises(ValueError):
+        ClearboxWrapper(fitted_model, additional_preprocessing=sk_transformer)
+
+
+def test_iris_sklearn_two_step_preprocessing(iris_data, drop_column_transformer):
+    x, y = iris_data
+    first_preprocessor = drop_column_transformer
+    second_preprocessor = preprocessing.StandardScaler()
+    model = linear_model.LogisticRegression()
+    x_transformed = first_preprocessor(x)
+    x_transformed = second_preprocessor.fit_transform(x_transformed)
+    fitted_model = model.fit(x_transformed, y)
+    wrapped_model = ClearboxWrapper(fitted_model, first_preprocessor, second_preprocessor)
+    original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
+    wrapped_model_predictions = wrapped_model.predict(model_input=x[:5])
+    np.testing.assert_array_equal(original_model_predictions, wrapped_model_predictions)

@@ -134,3 +134,6 @@ dmypy.json
 
 # pyenv
 .python-version
+
+# mlflow
+mlruns
