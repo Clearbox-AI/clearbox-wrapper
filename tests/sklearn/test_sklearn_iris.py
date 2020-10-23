@@ -391,3 +391,11 @@ def test_iris_sklearn_get_cleaned_and_processed_data(
         x_cleaned_by_loaded_data_cleaning
     )
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
+
+
+def test_iris_sklearn_conda_env(iris_data):
+    x, y = iris_data
+    model = linear_model.LogisticRegression()
+    fitted_model = model.fit(x, y)
+    cbw.save_model('tests/prova_conda', fitted_model)
+    assert False

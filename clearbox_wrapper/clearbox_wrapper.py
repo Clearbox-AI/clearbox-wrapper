@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, Union, Callable
+from typing import Any, List, Dict, Optional, Union, Callable
 
 import cloudpickle
 
@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 import mlflow.pyfunc
+from mlflow.utils.environment import _mlflow_conda_env
 
 
 def save_model(
@@ -14,11 +15,35 @@ def save_model(
     model: Any,
     preprocessing: Optional[Callable] = None,
     data_cleaning: Optional[Callable] = None,
+    additional_conda_deps: List = None,
+    additional_pip_deps: List = None,
+    additional_conda_channels: List = None,
 ) -> "ClearboxWrapper":
+
+    pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
+    conda_deps = []
+
+    if additional_pip_deps is not None:
+        pip_deps += additional_pip_deps
+    if additional_conda_deps is not None:
+        conda_deps += additional_conda_deps
+
+    if "__getstate__" in dir(model) and "_sklearn_version" in model.__getstate__():
+        conda_deps.append(
+            "scikit-learn={}".format(model.__getstate__()["_sklearn_version"])
+        )
+
+    conda_env = _mlflow_conda_env(
+        additional_conda_deps=conda_deps,
+        additional_pip_deps=pip_deps,
+        additional_conda_channels=additional_conda_channels,
+    )
+    print(conda_env)
     wrapped_model = ClearboxWrapper(model, preprocessing, data_cleaning)
-    wrapped_model.save(path)
+    wrapped_model.save(path, conda_env=conda_env)
 
     if preprocessing is not None:
+
         def preprocessing_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
             preprocessed_data = (
                 preprocessing.transform(data)
@@ -34,6 +59,7 @@ def save_model(
             cloudpickle.dump(preprocessing_function, preprocessing_output_file)
 
     if data_cleaning is not None:
+
         def data_cleaning_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
             cleaned_data = (
                 data_cleaning.transform(data)
@@ -132,6 +158,6 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
             )
         return self.model.predict_proba(model_input)
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, conda_env: Dict = None) -> None:
         mlflow.set_tracking_uri(path)
-        mlflow.pyfunc.save_model(path=path, python_model=self)
+        mlflow.pyfunc.save_model(path=path, python_model=self, conda_env=conda_env)
