@@ -1,4 +1,7 @@
+from sys import version_info
+
 import pytest
+import yaml
 
 import numpy as np
 
@@ -393,9 +396,40 @@ def test_iris_sklearn_get_cleaned_and_processed_data(
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
 
 
-def test_iris_sklearn_conda_env(iris_data):
+@pytest.mark.parametrize(
+    "sklearn_model",
+    [
+        (linear_model.LogisticRegression()),
+        (svm.SVC(probability=True)),
+        (neighbors.KNeighborsClassifier()),
+        (tree.DecisionTreeClassifier()),
+        (ensemble.RandomForestClassifier()),
+    ],
+)
+def test_iris_sklearn_conda_env(sklearn_model, iris_data, tmpdir):
+    import sklearn
+    import cloudpickle
+
     x, y = iris_data
-    model = linear_model.LogisticRegression()
-    fitted_model = model.fit(x, y)
-    cbw.save_model('tests/prova_conda', fitted_model)
-    assert False
+    fitted_model = sklearn_model.fit(x, y)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(tmp_model_path, fitted_model)
+
+    with open(tmp_model_path + "/conda.yaml", "r") as f:
+        conda_env = yaml.safe_load(f)
+
+    python_version = "{major}.{minor}.{micro}".format(
+        major=version_info.major, minor=version_info.minor, micro=version_info.micro
+    )
+    sklearn_version = sklearn.__version__
+    cloudpickle_version = cloudpickle.__version__
+
+    channels_list = ["defaults", "conda-forge"]
+    dependencies = [
+        "python={}".format(python_version),
+        "scikit-learn={}".format(sklearn_version),
+        "pip",
+        {"pip": ["mlflow", "cloudpickle=={}".format(cloudpickle_version)]},
+    ]
+    assert conda_env["channels"] == channels_list
+    assert conda_env["dependencies"] == dependencies

@@ -942,7 +942,7 @@ testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "4ecc8ef94a75f09f226932f61e5ee577ed6d12fd3c271027c07b1724508474cc"
+content-hash = "154de5d73b231a2d54df8079b5c03e5703bf1d4891f1837d540a48af65a4e95d"
 
 [metadata.files]
 alembic = [
