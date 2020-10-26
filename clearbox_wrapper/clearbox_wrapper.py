@@ -10,6 +10,61 @@ import mlflow.pyfunc
 from mlflow.utils.environment import _mlflow_conda_env
 
 
+def _check_and_get_conda_env(
+    model: Any,
+    additional_conda_deps: List = None,
+    additional_pip_deps: List = None,
+    additional_conda_channels: List = None,
+) -> Dict:
+    pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
+    conda_deps = []
+
+    if additional_pip_deps is not None:
+        pip_deps += additional_pip_deps
+    if additional_conda_deps is not None:
+        conda_deps += additional_conda_deps
+
+    if additional_conda_channels is not None and len(additional_conda_channels) > len(
+        set(additional_conda_channels)
+    ):
+        raise ValueError("Each element of 'additional_conda_channels' must be unique.")
+
+    if "__getstate__" in dir(model) and "_sklearn_version" in model.__getstate__():
+        conda_deps.append(
+            "scikit-learn={}".format(model.__getstate__()["_sklearn_version"])
+        )
+
+    unique_conda_deps = [dep.split("=")[0] for dep in conda_deps]
+    if len(unique_conda_deps) > len(set(unique_conda_deps)):
+        raise ValueError(
+            "Multiple occurences of a conda dependency is not allowed: {}".format(
+                conda_deps
+            )
+        )
+
+    unique_pip_deps = [dep.split("==")[0] for dep in pip_deps]
+    if len(unique_pip_deps) > len(set(unique_pip_deps)):
+        raise ValueError(
+            "Multiple occurences of a pip dependency is not allowed: {}".format(
+                pip_deps
+            )
+        )
+
+    conda_pip_common_deps = set(unique_conda_deps).intersection(set(unique_pip_deps))
+    if len(conda_pip_common_deps) > 0:
+        raise ValueError(
+            "Some deps have been passed for both conda and pip: {}".format(
+                conda_pip_common_deps
+            )
+        )
+
+    return _mlflow_conda_env(
+        additional_conda_deps=conda_deps,
+        additional_pip_deps=pip_deps,
+        additional_conda_channels=additional_conda_channels,
+    )
+
+
 def save_model(
     path: str,
     model: Any,
@@ -20,25 +75,9 @@ def save_model(
     additional_conda_channels: List = None,
 ) -> "ClearboxWrapper":
 
-    pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
-    conda_deps = []
-
-    if additional_pip_deps is not None:
-        pip_deps += additional_pip_deps
-    if additional_conda_deps is not None:
-        conda_deps += additional_conda_deps
-
-    if "__getstate__" in dir(model) and "_sklearn_version" in model.__getstate__():
-        conda_deps.append(
-            "scikit-learn={}".format(model.__getstate__()["_sklearn_version"])
-        )
-
-    conda_env = _mlflow_conda_env(
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-        additional_conda_channels=additional_conda_channels,
+    conda_env = _check_and_get_conda_env(
+        model, additional_conda_deps, additional_pip_deps, additional_conda_channels
     )
-    print(conda_env)
     wrapped_model = ClearboxWrapper(model, preprocessing, data_cleaning)
     wrapped_model.save(path, conda_env=conda_env)
 
