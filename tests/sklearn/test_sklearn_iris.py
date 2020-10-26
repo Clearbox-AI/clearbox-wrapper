@@ -57,7 +57,7 @@ def drop_column_transformer():
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression()),
+        (linear_model.LogisticRegression(max_iter=150)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),
@@ -76,10 +76,10 @@ def test_iris_sklearn_no_preprocessing(sklearn_model, iris_data):
 @pytest.mark.parametrize(
     "sklearn_model, sk_transformer",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -104,7 +104,7 @@ def test_iris_sklearn_preprocessing(sklearn_model, sk_transformer, iris_data):
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression()),
+        (linear_model.LogisticRegression(max_iter=200)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),
@@ -126,7 +126,7 @@ def test_iris_sklearn_preprocessing_with_function_transformer(
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression()),
+        (linear_model.LogisticRegression(max_iter=150)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),
@@ -148,10 +148,10 @@ def test_iris_sklearn_preprocessing_with_custom_transformer(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -178,7 +178,7 @@ def test_iris_sklearn_data_cleaning_and_preprocessing(
 def test_iris_sklearn_data_cleaning_without_preprocessing(iris_data):
     x, y = iris_data
     sk_transformer = sk_preprocessing.StandardScaler()
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     x_transformed = sk_transformer.fit_transform(x)
     fitted_model = model.fit(x_transformed, y)
     with pytest.raises(ValueError):
@@ -188,7 +188,7 @@ def test_iris_sklearn_data_cleaning_without_preprocessing(iris_data):
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression()),
+        (linear_model.LogisticRegression(max_iter=150)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),
@@ -209,10 +209,10 @@ def test_iris_sklearn_no_preprocessing_save_and_load(sklearn_model, iris_data, t
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -239,10 +239,10 @@ def test_iris_sklearn_preprocessing_save_and_load(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -270,7 +270,7 @@ def test_iris_sklearn_data_cleaning_and_preprocessing_save_and_load(
 
 def test_iris_sklearn_load_preprocessing_without_preprocessing(iris_data, tmpdir):
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
     tmp_model_path = str(tmpdir + "/saved_model")
     cbw.save_model(tmp_model_path, fitted_model)
@@ -281,7 +281,7 @@ def test_iris_sklearn_load_preprocessing_without_preprocessing(iris_data, tmpdir
 def test_iris_sklearn_load_data_cleaning_without_data_cleaning(iris_data, tmpdir):
     x, y = iris_data
     sk_transformer = sk_preprocessing.StandardScaler()
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     x_transformed = sk_transformer.fit_transform(x)
     fitted_model = model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
@@ -297,10 +297,10 @@ def test_iris_sklearn_load_data_cleaning_without_data_cleaning(iris_data, tmpdir
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -326,10 +326,10 @@ def test_iris_sklearn_get_preprocessed_data(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -361,10 +361,10 @@ def test_iris_sklearn_get_cleaned_data(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(), sk_preprocessing.StandardScaler()),
+        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
         (
             svm.SVC(probability=True),
-            sk_preprocessing.QuantileTransformer(random_state=0),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
         ),
         (
             neighbors.KNeighborsClassifier(),
@@ -399,7 +399,7 @@ def test_iris_sklearn_get_cleaned_and_processed_data(
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression()),
+        (linear_model.LogisticRegression(max_iter=150)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),
@@ -440,7 +440,7 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
     import cloudpickle
 
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
     conda_channels = ["special_channel", "custom_channel"]
@@ -487,7 +487,7 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
 
 def test_iris_sklearn_conda_env_additional_channels_with_duplicates(iris_data, tmpdir):
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
     conda_channels = ["special_channel", "custom_channel", "custom_channel"]
@@ -504,7 +504,7 @@ def test_iris_sklearn_conda_env_additional_conda_deps_with_duplicates(
     iris_data, tmpdir
 ):
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
     conda_deps = ["torch=1.6.0", "torch=1.6.2"]
@@ -515,7 +515,7 @@ def test_iris_sklearn_conda_env_additional_conda_deps_with_duplicates(
 
 def test_iris_sklearn_conda_env_additional_pip_deps_with_duplicates(iris_data, tmpdir):
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
     pip_deps = ["torch==1.6.0", "torch==1.6.2"]
@@ -528,7 +528,7 @@ def test_iris_sklearn_conda_env_additional_conda_and_pip_deps_with_common_deps(
     iris_data, tmpdir
 ):
     x, y = iris_data
-    model = linear_model.LogisticRegression()
+    model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
     conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]

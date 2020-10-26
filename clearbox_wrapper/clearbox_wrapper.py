@@ -195,7 +195,10 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
                 if "transform" in dir(self.preprocessing)
                 else self.preprocessing(model_input)
             )
-        return self.model.predict_proba(model_input)
+        if "predict_proba" in dir(self.model):
+            return self.model.predict_proba(model_input)
+        else:
+            return self.model.predict(model_input)
 
     def save(self, path: str, conda_env: Dict = None) -> None:
         mlflow.set_tracking_uri(path)
