@@ -76,7 +76,10 @@ def test_iris_sklearn_no_preprocessing(sklearn_model, iris_data):
 @pytest.mark.parametrize(
     "sklearn_model, sk_transformer",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -148,7 +151,10 @@ def test_iris_sklearn_preprocessing_with_custom_transformer(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -209,7 +215,10 @@ def test_iris_sklearn_no_preprocessing_save_and_load(sklearn_model, iris_data, t
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -239,7 +248,10 @@ def test_iris_sklearn_preprocessing_save_and_load(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -297,7 +309,10 @@ def test_iris_sklearn_load_data_cleaning_without_data_cleaning(iris_data, tmpdir
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -326,7 +341,10 @@ def test_iris_sklearn_get_preprocessed_data(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
@@ -361,7 +379,10 @@ def test_iris_sklearn_get_cleaned_data(
 @pytest.mark.parametrize(
     "sklearn_model, preprocessor",
     [
-        (linear_model.LogisticRegression(max_iter=150), sk_preprocessing.StandardScaler()),
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
         (
             svm.SVC(probability=True),
             sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
