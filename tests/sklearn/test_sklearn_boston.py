@@ -85,7 +85,7 @@ def test_boston_sklearn_no_preprocessing(sklearn_model, boston_data, tmpdir):
         ),
         (
             neighbors.KNeighborsRegressor(),
-            sk_preprocessing.KBinsDiscretizer(n_bins=5, encode="ordinal"),
+            sk_preprocessing.MaxAbsScaler(),
         ),
         (tree.DecisionTreeRegressor(), sk_preprocessing.RobustScaler()),
         (ensemble.RandomForestRegressor(), sk_preprocessing.MaxAbsScaler()),
@@ -112,11 +112,11 @@ def test_boston_sklearn_preprocessing(sklearn_model, preprocessor, boston_data, 
         ),
         (
             svm.SVR(),
-            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=20),
         ),
         (
             neighbors.KNeighborsRegressor(),
-            sk_preprocessing.KBinsDiscretizer(n_bins=5, encode="ordinal"),
+            sk_preprocessing.RobustScaler(),
         ),
         (tree.DecisionTreeRegressor(), sk_preprocessing.RobustScaler()),
         (ensemble.RandomForestRegressor(), sk_preprocessing.MaxAbsScaler()),

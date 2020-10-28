@@ -129,7 +129,7 @@ def test_iris_sklearn_preprocessing_with_function_transformer(
 @pytest.mark.parametrize(
     "sklearn_model",
     [
-        (linear_model.LogisticRegression(max_iter=150)),
+        (linear_model.LogisticRegression(max_iter=300)),
         (svm.SVC(probability=True)),
         (neighbors.KNeighborsClassifier()),
         (tree.DecisionTreeClassifier()),

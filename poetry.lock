@@ -928,6 +928,25 @@ dev = ["pytest", "pytest-timeout", "coverage", "tox", "sphinx", "pallets-sphinx-
 watchdog = ["watchdog"]
 
 [[package]]
+name = "xgboost"
+version = "1.2.1"
+description = "XGBoost Python Package"
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+numpy = "*"
+scipy = "*"
+
+[package.extras]
+dask = ["dask", "pandas", "distributed"]
+datatable = ["datatable"]
+pandas = ["pandas"]
+plotting = ["graphviz", "matplotlib"]
+scikit-learn = ["scikit-learn"]
+
+[[package]]
 name = "zipp"
 version = "3.3.1"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -942,7 +961,7 @@ testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "154de5d73b231a2d54df8079b5c03e5703bf1d4891f1837d540a48af65a4e95d"
+content-hash = "e8c24c1f1090a547eb73fda0f1d11b25dd204e062eb02aacca3143fc3dc9c49d"
 
 [metadata.files]
 alembic = [
@@ -1527,6 +1546,12 @@ websocket-client = [
 werkzeug = [
     {file = "Werkzeug-1.0.1-py2.py3-none-any.whl", hash = "sha256:2de2a5db0baeae7b2d2664949077c2ac63fbd16d98da0ff71837f7d1dea3fd43"},
     {file = "Werkzeug-1.0.1.tar.gz", hash = "sha256:6c80b1e5ad3665290ea39320b91e1be1e0d5f60652b964a3070216de83d2e47c"},
+]
+xgboost = [
+    {file = "xgboost-1.2.1-py3-none-macosx_10_13_x86_64.macosx_10_14_x86_64.macosx_10_15_x86_64.whl", hash = "sha256:618257aab3fffe0b5b5c88f27d21dc16a388ac351a0da73a7cea1d6c74fb9899"},
+    {file = "xgboost-1.2.1-py3-none-manylinux2010_x86_64.whl", hash = "sha256:e990258b13cdbfc8761c61bb196677b9de3f63173890d4448b533a570c8790e3"},
+    {file = "xgboost-1.2.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:0b03f608b67df1a7d4f29abcb2952067790d61207073b033b1c99d2f3ddaef6c"},
+    {file = "xgboost-1.2.1-py3-none-win_amd64.whl", hash = "sha256:f687948261795cc945e3a0b7b40721bccaa600d8d34212d7a0d8564e7310a5c9"},
 ]
 zipp = [
     {file = "zipp-3.3.1-py3-none-any.whl", hash = "sha256:16522f69653f0d67be90e8baa4a46d66389145b734345d68a257da53df670903"},

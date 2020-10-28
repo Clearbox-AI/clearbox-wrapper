@@ -33,6 +33,10 @@ def _check_and_get_conda_env(
         conda_deps.append(
             "scikit-learn={}".format(model.__getstate__()["_sklearn_version"])
         )
+    if "xgb" in model.__class__.__name__.lower():
+        import xgboost
+
+        conda_deps.append("xgboost={}".format(xgboost.__version__))
 
     unique_conda_deps = [dep.split("=")[0] for dep in conda_deps]
     if len(unique_conda_deps) > len(set(unique_conda_deps)):
