@@ -10,6 +10,7 @@ import pandas as pd
 
 import mlflow.pyfunc
 import mlflow.keras
+import mlflow.pytorch
 from mlflow.utils.environment import _mlflow_conda_env
 
 
@@ -95,6 +96,14 @@ def save_model(
             keras_model_path = os.path.join(tmp_dir, "keras_model")
             mlflow.keras.save_model(model, keras_model_path)
             artifacts = {"keras_model": keras_model_path}
+            wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
+            wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
+    elif "torch" in str(model.__class__):
+        print("PORCODDIO!")
+        with TemporaryDirectory() as tmp_dir:
+            pytorch_model_path = os.path.join(tmp_dir, "pytorch_model")
+            mlflow.pytorch.save_model(model, pytorch_model_path)
+            artifacts = {"pytorch_model": pytorch_model_path}
             wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
             wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
     else:
@@ -194,6 +203,10 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
         if "keras_model" in context.artifacts:
             self.model = mlflow.keras.load_model(context.artifacts["keras_model"])
+        elif "pytorch_model" in context.artifacts:
+            print("PORCALAMADONNA!")
+            self.model = mlflow.pytorch.load_model(context.artifacts["pytorch_model"])
+            print(dir(self.model))
 
     def predict(self, context=None, model_input=None):
         if self.data_cleaning is not None:
