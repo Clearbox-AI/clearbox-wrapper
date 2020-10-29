@@ -1,12 +1,15 @@
 import os
 from typing import Any, List, Dict, Optional, Union, Callable
 
+from tempfile import TemporaryDirectory
+
 import cloudpickle
 
 import numpy as np
 import pandas as pd
 
 import mlflow.pyfunc
+import mlflow.keras
 from mlflow.utils.environment import _mlflow_conda_env
 
 
@@ -36,7 +39,11 @@ def _check_and_get_conda_env(
     if "xgb" in model.__class__.__name__.lower():
         import xgboost
 
-        conda_deps.append("xgboost={}".format(xgboost.__version__))
+        pip_deps.append("xgboost=={}".format(xgboost.__version__))
+    if "keras" in str(model.__class__):
+        import tensorflow
+
+        pip_deps.append("tensorflow=={}".format(tensorflow.__version__))
 
     unique_conda_deps = [dep.split("=")[0] for dep in conda_deps]
     if len(unique_conda_deps) > len(set(unique_conda_deps)):
@@ -82,8 +89,17 @@ def save_model(
     conda_env = _check_and_get_conda_env(
         model, additional_conda_deps, additional_pip_deps, additional_conda_channels
     )
-    wrapped_model = ClearboxWrapper(model, preprocessing, data_cleaning)
-    wrapped_model.save(path, conda_env=conda_env)
+
+    if "keras" in str(model.__class__):
+        with TemporaryDirectory() as tmp_dir:
+            keras_model_path = os.path.join(tmp_dir, "keras_model")
+            mlflow.keras.save_model(model, keras_model_path)
+            artifacts = {"keras_model": keras_model_path}
+            wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
+            wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
+    else:
+        wrapped_model = ClearboxWrapper(model, preprocessing, data_cleaning)
+        wrapped_model.save(path, conda_env=conda_env)
 
     if preprocessing is not None:
 
@@ -175,16 +191,9 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
         self.preprocessing = preprocessing
         self.data_cleaning = data_cleaning
 
-    def preprocess(self, data: Any) -> Union[pd.DataFrame, np.ndarray]:
-        if self.preprocessing is not None:
-            preprocessed_data = (
-                self.preprocessing.transform(data)
-                if "transform" in dir(self.preprocessing)
-                else self.preprocessing(data)
-            )
-            return preprocessed_data
-        else:
-            raise Exception("There is no preprocessing for this model.")
+    def load_context(self, context):
+        if "keras_model" in context.artifacts:
+            self.model = mlflow.keras.load_model(context.artifacts["keras_model"])
 
     def predict(self, context=None, model_input=None):
         if self.data_cleaning is not None:
@@ -204,6 +213,9 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
         else:
             return self.model.predict(model_input)
 
-    def save(self, path: str, conda_env: Dict = None) -> None:
+    def save(self, path: str, conda_env: Dict = None, artifacts: Dict = None) -> None:
         mlflow.set_tracking_uri(path)
-        mlflow.pyfunc.save_model(path=path, python_model=self, conda_env=conda_env)
+        print(artifacts)
+        mlflow.pyfunc.save_model(
+            path=path, python_model=self, artifacts=artifacts, conda_env=conda_env
+        )

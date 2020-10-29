@@ -9,7 +9,8 @@ import numpy as np
 import sklearn.datasets as datasets
 import sklearn.preprocessing as sk_preprocessing
 
-import xgboost as xgb
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -56,14 +57,26 @@ def drop_column_transformer():
     return drop_column
 
 
-def test_iris_xgboost_no_preprocessing(iris_data, model_path):
+@pytest.fixture()
+def keras_model():
+    keras_clf = Sequential()
+    keras_clf.add(Dense(8, input_dim=4, activation="relu"))
+    keras_clf.add(Dense(3, activation="softmax"))
+
+    keras_clf.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    return keras_clf
+
+
+def test_iris_keras_no_preprocessing(iris_data, keras_model, model_path):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+    model = keras_model
+    model.fit(x, y, epochs=10, batch_size=10)
+    cbw.save_model(model_path, model)
 
     loaded_model = cbw.load_model(model_path)
-    original_model_predictions = fitted_model.predict_proba(x)
+    original_model_predictions = model.predict(x)
     loaded_model_predictions = loaded_model.predict(x)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
@@ -79,48 +92,48 @@ def test_iris_xgboost_no_preprocessing(iris_data, model_path):
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_xgboost_preprocessing(sk_transformer, iris_data, model_path):
+def test_iris_keras_preprocessing(sk_transformer, iris_data, keras_model, model_path):
     x, y = iris_data
     x_transformed = sk_transformer.fit_transform(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_transformer)
+    model = keras_model
+    model.fit(x_transformed, y)
+    cbw.save_model(model_path, model, sk_transformer)
 
     loaded_model = cbw.load_model(model_path)
-    original_model_predictions = fitted_model.predict_proba(x_transformed)
+    original_model_predictions = model.predict(x_transformed)
     loaded_model_predictions = loaded_model.predict(x)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_xgboost_preprocessing_with_function_transformer(
-    sk_function_transformer, iris_data, model_path
+def test_iris_keras_preprocessing_with_function_transformer(
+    sk_function_transformer, iris_data, keras_model, model_path
 ):
     x, y = iris_data
     x_transformed = sk_function_transformer.fit_transform(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_function_transformer)
+    model = keras_model
+    model.fit(x_transformed, y)
+    cbw.save_model(model_path, model, sk_function_transformer)
 
     loaded_model = cbw.load_model(model_path)
-    original_model_predictions = fitted_model.predict_proba(x_transformed)
+    original_model_predictions = model.predict(x_transformed)
     loaded_model_predictions = loaded_model.predict(x)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_xgboost_preprocessing_with_custom_transformer(
-    custom_transformer, iris_data, model_path
+def test_iris_keras_preprocessing_with_custom_transformer(
+    custom_transformer, iris_data, keras_model, model_path
 ):
     x, y = iris_data
     x_transformed = custom_transformer(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, custom_transformer)
+    model = keras_model
+    model.fit(x_transformed, y)
+    cbw.save_model(model_path, model, custom_transformer)
 
     loaded_model = cbw.load_model(model_path)
-    original_model_predictions = fitted_model.predict_proba(x_transformed)
+    original_model_predictions = model.predict(x_transformed)
     loaded_model_predictions = loaded_model.predict(x)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -135,53 +148,66 @@ def test_iris_xgboost_preprocessing_with_custom_transformer(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_xgboost_data_cleaning_and_preprocessing(
-    preprocessor, iris_data, drop_column_transformer, model_path
+def test_iris_keras_data_cleaning_and_preprocessing(
+    preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
     x_cleaned = drop_column_transformer(x)
     x_transformed = preprocessor.fit_transform(x_cleaned)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    model = Sequential()
+    model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
+    model.add(Dense(3, activation="softmax"))
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    model.fit(x_transformed, y)
+
+    cbw.save_model(model_path, model, preprocessor, drop_column_transformer)
 
     loaded_model = cbw.load_model(model_path)
-    original_model_predictions = fitted_model.predict_proba(x_transformed)
+    original_model_predictions = model.predict(x_transformed)
     loaded_model_predictions = loaded_model.predict(x)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_xgboost_data_cleaning_without_preprocessing(iris_data, model_path):
+def test_iris_keras_data_cleaning_without_preprocessing(
+    iris_data, keras_model, model_path
+):
     x, y = iris_data
     sk_transformer = sk_preprocessing.StandardScaler()
     x_transformed = sk_transformer.fit_transform(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
+    model = keras_model
+    model.fit(x_transformed, y)
 
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, data_cleaning=drop_column_transformer)
+        cbw.save_model(model_path, model, data_cleaning=drop_column_transformer)
 
 
-def test_iris_xgboost_load_preprocessing_without_preprocessing(iris_data, model_path):
+def test_iris_keras_load_preprocessing_without_preprocessing(
+    iris_data, keras_model, model_path
+):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+    model = keras_model
+    model.fit(x, y)
+    cbw.save_model(model_path, model)
 
     with pytest.raises(FileNotFoundError):
         loaded_model, preprocessing = cbw.load_model_preprocessing(model_path)
 
 
-def test_iris_xgboost_load_data_cleaning_without_data_cleaning(iris_data, model_path):
+def test_iris_keras_load_data_cleaning_without_data_cleaning(
+    iris_data, keras_model, model_path
+):
     x, y = iris_data
     sk_transformer = sk_preprocessing.StandardScaler()
     x_transformed = sk_transformer.fit_transform(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_transformer)
+    model = keras_model
+    model.fit(x_transformed, y)
+    cbw.save_model(model_path, model, sk_transformer)
 
     with pytest.raises(FileNotFoundError):
         (
@@ -201,13 +227,15 @@ def test_iris_xgboost_load_data_cleaning_without_data_cleaning(iris_data, model_
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_xgboost_get_preprocessed_data(preprocessor, iris_data, model_path):
+def test_iris_keras_get_preprocessed_data(
+    preprocessor, iris_data, keras_model, model_path
+):
     x, y = iris_data
     x_transformed = preprocessor.fit_transform(x)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor)
+    model = keras_model
+    model.fit(x_transformed, y)
+    cbw.save_model(model_path, model, preprocessor)
 
     loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(model_path)
     x_transformed_by_loaded_preprocessing = loaded_preprocessing(x)
@@ -224,16 +252,23 @@ def test_iris_xgboost_get_preprocessed_data(preprocessor, iris_data, model_path)
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_xgboost_get_cleaned_data(
-    preprocessor, iris_data, drop_column_transformer, model_path
+def test_iris_keras_get_cleaned_data(
+    preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
     x_cleaned = drop_column_transformer(x)
     x_transformed = preprocessor.fit_transform(x_cleaned)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    model = Sequential()
+    model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
+    model.add(Dense(3, activation="softmax"))
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    model.fit(x_transformed, y)
+
+    cbw.save_model(model_path, model, preprocessor, drop_column_transformer)
 
     (
         loaded_model,
@@ -255,16 +290,23 @@ def test_iris_xgboost_get_cleaned_data(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_xgboost_get_cleaned_and_processed_data(
-    preprocessor, iris_data, drop_column_transformer, model_path
+def test_iris_keras_get_cleaned_and_processed_data(
+    preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
     x_cleaned = drop_column_transformer(x)
     x_transformed = preprocessor.fit_transform(x_cleaned)
 
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    model = Sequential()
+    model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
+    model.add(Dense(3, activation="softmax"))
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    model.fit(x_transformed, y)
+
+    cbw.save_model(model_path, model, preprocessor, drop_column_transformer)
 
     (
         loaded_model,
@@ -279,13 +321,15 @@ def test_iris_xgboost_get_cleaned_and_processed_data(
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
 
 
-def test_iris_xgboost_conda_env(iris_data, model_path):
+def test_iris_keras_conda_env(iris_data, keras_model, model_path):
     import cloudpickle
+    import tensorflow
 
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+
+    model = keras_model
+    model.fit(x, y)
+    cbw.save_model(model_path, model)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -293,7 +337,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
     python_version = "{major}.{minor}.{micro}".format(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
-    xgb_version = xgb.__version__
+    tf_version = tensorflow.__version__
     cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
@@ -304,7 +348,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
             "pip": [
                 "mlflow",
                 "cloudpickle=={}".format(cloudpickle_version),
-                "xgboost=={}".format(xgb_version),
+                "tensorflow=={}".format(tf_version),
             ]
         },
     ]
@@ -312,20 +356,21 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
+def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path):
     import cloudpickle
+    import tensorflow
 
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
+    model = keras_model
+    model.fit(x, y)
 
     conda_channels = ["special_channel", "custom_channel"]
-    conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
+    conda_deps = ["torch=1.6.0", "fake_package=2.1.0"]
     pip_deps = ["fastapi==0.52.1", "my_package==1.23.1"]
 
     cbw.save_model(
         model_path,
-        fitted_model,
+        model,
         additional_conda_channels=conda_channels,
         additional_conda_deps=conda_deps,
         additional_pip_deps=pip_deps,
@@ -337,14 +382,14 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
     python_version = "{major}.{minor}.{micro}".format(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
-    xgb_version = xgb.__version__
+    tf_version = tensorflow.__version__
     cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge", "special_channel", "custom_channel"]
     dependencies = [
         "python={}".format(python_version),
         "torch=1.6.0",
-        "tensorflow=2.1.0",
+        "fake_package=2.1.0",
         "pip",
         {
             "pip": [
@@ -352,7 +397,7 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
                 "cloudpickle=={}".format(cloudpickle_version),
                 "fastapi==0.52.1",
                 "my_package==1.23.1",
-                "xgboost=={}".format(xgb_version),
+                "tensorflow=={}".format(tf_version),
             ]
         },
     ]
@@ -360,59 +405,60 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_xgboost_conda_env_additional_channels_with_duplicates(
-    iris_data, model_path
+def test_iris_keras_conda_env_additional_channels_with_duplicates(
+    iris_data, keras_model, model_path
 ):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
+    model = keras_model
+    model.fit(x, y)
 
     conda_channels = ["special_channel", "custom_channel", "custom_channel"]
     with pytest.raises(ValueError):
         cbw.save_model(
             model_path,
-            fitted_model,
+            model,
             additional_conda_channels=conda_channels,
         )
 
 
-def test_iris_xgboost_conda_env_additional_conda_deps_with_duplicates(
-    iris_data, model_path
+def test_iris_keras_conda_env_additional_conda_deps_with_duplicates(
+    iris_data, keras_model, model_path
 ):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
+    model = keras_model
+    model.fit(x, y)
 
     conda_deps = ["torch=1.6.0", "torch=1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, additional_conda_deps=conda_deps)
+        cbw.save_model(model_path, model, additional_conda_deps=conda_deps)
 
 
-def test_iris_xgboost_conda_env_additional_pip_deps_with_duplicates(
-    iris_data, model_path
+def test_iris_keras_conda_env_additional_pip_deps_with_duplicates(
+    iris_data, keras_model, model_path
 ):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
+    model = keras_model
+    model.fit(x, y)
 
     pip_deps = ["torch==1.6.0", "torch==1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, additional_pip_deps=pip_deps)
+        cbw.save_model(model_path, model, additional_pip_deps=pip_deps)
 
 
-def test_iris_xgboost_conda_env_additional_conda_and_pip_deps_with_common_deps(
-    iris_data, model_path
+def test_iris_keras_conda_env_additional_conda_and_pip_deps_with_common_deps(
+    iris_data, keras_model, model_path
 ):
     x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
+    model = keras_model
+    model.fit(x, y)
 
     conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
     pip_deps = ["torch==1.6.3", "fastapi>=0.52.1"]
+
     with pytest.raises(ValueError):
         cbw.save_model(
             model_path,
-            fitted_model,
+            model,
             additional_conda_deps=conda_deps,
             additional_pip_deps=pip_deps,
         )
