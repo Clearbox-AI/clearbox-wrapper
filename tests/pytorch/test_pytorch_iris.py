@@ -25,21 +25,14 @@ def model_path(tmpdir):
 @pytest.fixture(scope="module")
 def iris_data():
     iris = datasets.load_iris()
-    data = pd.DataFrame(
-        data=np.c_[iris["data"], iris["target"]],
-        columns=iris["feature_names"] + ["target"],
-    )
-    y = data["target"]
-    x = data.drop("target", axis=1)
+    x = iris.data
+    y = iris.target
     return x, y
 
 
 def get_dataset(data):
     x, y = data
-    dataset = [
-        (xi.astype(np.float32), yi.astype(np.float32))
-        for xi, yi in zip(x.values, y.values)
-    ]
+    dataset = [(xi.astype(np.float32), yi.astype(np.float32)) for xi, yi in zip(x, y)]
     return dataset
 
 
@@ -94,8 +87,51 @@ def _predict(model, data):
     predictions = np.zeros((len(dataloader.sampler),))
     model.eval()
     with torch.no_grad():
+        print("===== PREDICT ======")
         for i, batch in enumerate(dataloader):
+            if i == 0:
+                print(
+                    "- batch type: {}, batch shape: {}".format(
+                        type(batch[0]), batch[0].shape
+                    )
+                )
+                print("- batch[0][0]: {}".format(batch[0][0]))
+                for el in batch[0][0]:
+                    print(
+                        "- el type: {}, el value: {}".format(type(el.item()), el.item())
+                    )
             y_preds = model(batch[0]).squeeze(dim=1).numpy()
+            predictions[i * batch_size : (i + 1) * batch_size] = y_preds
+    return predictions
+
+
+def _loaded_predict(model, data):
+    dataset = get_dataset(data)
+    batch_size = 16
+    num_workers = 4
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=False,
+        drop_last=False,
+    )
+    predictions = np.zeros((len(dataloader.sampler),))
+    with torch.no_grad():
+        print("===== PREDICT LOADED ======")
+        for i, batch in enumerate(dataloader):
+            if i == 0:
+                print(
+                    "- batch type: {}, batch shape: {}".format(
+                        type(batch[0]), batch[0].shape
+                    )
+                )
+                print("- batch[0][0]: {}".format(batch[0][0]))
+                for el in batch[0][0]:
+                    print(
+                        "- el type: {}, el value: {}".format(type(el.item()), el.item())
+                    )
+            y_preds = model.predict(batch[0]).squeeze(dim=1).numpy()
             predictions[i * batch_size : (i + 1) * batch_size] = y_preds
     return predictions
 
@@ -134,20 +170,25 @@ def drop_column_transformer():
     return drop_column
 
 
-def test_iris_pytorch_no_preprocessing(
-    sequential_model, model_path, iris_data, sequential_predicted
-):
-    cbw.save_model(model_path, sequential_model)
+def test_iris_pytorch_no_preprocessing(iris_data, model_path):
+
+    model = nn.Sequential(
+        nn.Linear(4, 3),
+        nn.ReLU(),
+        nn.Linear(3, 1),
+    )
+    train_model(model, iris_data)
+    cbw.save_model(model_path, model)
 
     loaded_model = cbw.load_model(model_path)
-    print(loaded_model.metadata)
-    print(dir(loaded_model.metadata))
-    loaded_model_predictions = _predict(loaded_model.model, iris_data)
 
-    # np.testing.assert_array_equal(sequential_predicted, loaded_model_predictions)
+    original_model_predictions = _predict(model, iris_data)
+    loaded_model_predictions = _loaded_predict(loaded_model, iris_data)
+
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-"""@pytest.mark.parametrize(
+@pytest.mark.parametrize(
     "sk_transformer",
     [
         (sk_preprocessing.StandardScaler()),
@@ -157,10 +198,32 @@ def test_iris_pytorch_no_preprocessing(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_keras_preprocessing(sk_transformer, iris_data, keras_model, model_path):
+def test_iris_pytorch_preprocessing(sk_transformer, iris_data, model_path):
     x, y = iris_data
     x_transformed = sk_transformer.fit_transform(x)
 
+    print("-- X[0]: {}".format(x[0]))
+    print("-- X_TRANSFORMED[0]: {}".format(x_transformed[0]))
+    print("-- Y[0]: {}".format(y[0]))
+
+    model = nn.Sequential(
+        nn.Linear(4, 3),
+        nn.ReLU(),
+        nn.Linear(3, 1),
+    )
+    train_model(model, (x_transformed, y))
+    cbw.save_model(model_path, model, sk_transformer)
+
+    loaded_model = cbw.load_model(model_path)
+
+    original_model_predictions = _predict(model, (x_transformed, y))
+    loaded_model_predictions = _loaded_predict(loaded_model, iris_data)
+
+    np.testing.assert_almost_equal(
+        original_model_predictions, loaded_model_predictions, decimal=2
+    )
+
+    """
     model = keras_model
     model.fit(x_transformed, y)
     cbw.save_model(model_path, model, sk_transformer)
@@ -169,6 +232,7 @@ def test_iris_keras_preprocessing(sk_transformer, iris_data, keras_model, model_
     original_model_predictions = model.predict(x_transformed)
     loaded_model_predictions = loaded_model.predict(x)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
 
 
 def test_iris_keras_preprocessing_with_function_transformer(

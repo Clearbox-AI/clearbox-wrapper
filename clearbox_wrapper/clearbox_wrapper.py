@@ -99,7 +99,6 @@ def save_model(
             wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
             wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
     elif "torch" in str(model.__class__):
-        print("PORCODDIO!")
         with TemporaryDirectory() as tmp_dir:
             pytorch_model_path = os.path.join(tmp_dir, "pytorch_model")
             mlflow.pytorch.save_model(model, pytorch_model_path)
@@ -204,9 +203,7 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
         if "keras_model" in context.artifacts:
             self.model = mlflow.keras.load_model(context.artifacts["keras_model"])
         elif "pytorch_model" in context.artifacts:
-            print("PORCALAMADONNA!")
             self.model = mlflow.pytorch.load_model(context.artifacts["pytorch_model"])
-            print(dir(self.model))
 
     def predict(self, context=None, model_input=None):
         if self.data_cleaning is not None:
@@ -216,19 +213,49 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
                 else self.data_cleaning(model_input)
             )
         if self.preprocessing is not None:
+            print(
+                "-- model_input type: {}, model_input shape: {}".format(
+                    type(model_input), model_input.shape
+                )
+            )
+            for el in model_input[0]:
+                print(
+                    "---- el type: {}, el value: {}".format(type(el.item()), el.item())
+                )
             model_input = (
                 self.preprocessing.transform(model_input)
                 if "transform" in dir(self.preprocessing)
                 else self.preprocessing(model_input)
             )
-        if "predict_proba" in dir(self.model):
+            print(
+                "-- model_input type: {}, model_input shape: {}".format(
+                    type(model_input), model_input.shape
+                )
+            )
+            for el in model_input[0]:
+                print("-- el type: {}, el value: {}".format(type(el.item()), el.item()))
+
+        if context is not None and "pytorch_model" in context.artifacts:
+            if self.preprocessing is not None:
+                import torch
+
+                model_input = torch.from_numpy(model_input.astype(np.float32))
+            self.model.eval()
+            print(
+                "-- model_input type: {}, model_input shape: {}".format(
+                    type(model_input), model_input.shape
+                )
+            )
+            for el in model_input[0]:
+                print("-- el type: {}, el value: {}".format(type(el.item()), el.item()))
+            return self.model(model_input)
+        elif "predict_proba" in dir(self.model):
             return self.model.predict_proba(model_input)
         else:
             return self.model.predict(model_input)
 
     def save(self, path: str, conda_env: Dict = None, artifacts: Dict = None) -> None:
         mlflow.set_tracking_uri(path)
-        print(artifacts)
         mlflow.pyfunc.save_model(
             path=path, python_model=self, artifacts=artifacts, conda_env=conda_env
         )
