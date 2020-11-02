@@ -46,6 +46,11 @@ def _check_and_get_conda_env(
 
         pip_deps.append("tensorflow=={}".format(tensorflow.__version__))
 
+    if "torch" in str(model.__class__):
+        import torch
+
+        conda_deps.append("torch={}".format(torch.__version__))
+
     unique_conda_deps = [dep.split("=")[0] for dep in conda_deps]
     if len(unique_conda_deps) > len(set(unique_conda_deps)):
         raise ValueError(
@@ -213,41 +218,14 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
                 else self.data_cleaning(model_input)
             )
         if self.preprocessing is not None:
-            print(
-                "-- model_input type: {}, model_input shape: {}".format(
-                    type(model_input), model_input.shape
-                )
-            )
-            for el in model_input[0]:
-                print(
-                    "---- el type: {}, el value: {}".format(type(el.item()), el.item())
-                )
             model_input = (
                 self.preprocessing.transform(model_input)
                 if "transform" in dir(self.preprocessing)
                 else self.preprocessing(model_input)
             )
-            print(
-                "-- model_input type: {}, model_input shape: {}".format(
-                    type(model_input), model_input.shape
-                )
-            )
-            for el in model_input[0]:
-                print("-- el type: {}, el value: {}".format(type(el.item()), el.item()))
 
         if context is not None and "pytorch_model" in context.artifacts:
-            if self.preprocessing is not None:
-                import torch
-
-                model_input = torch.from_numpy(model_input.astype(np.float32))
             self.model.eval()
-            print(
-                "-- model_input type: {}, model_input shape: {}".format(
-                    type(model_input), model_input.shape
-                )
-            )
-            for el in model_input[0]:
-                print("-- el type: {}, el value: {}".format(type(el.item()), el.item()))
             return self.model(model_input)
         elif "predict_proba" in dir(self.model):
             return self.model.predict_proba(model_input)
