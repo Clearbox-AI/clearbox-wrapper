@@ -47,6 +47,12 @@ def x_and_y_preprocessing(x_dataframe):
             ("scaler", sk_preprocessing.StandardScaler()),
         ]
     )
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", sk_preprocessing.OneHotEncoder(handle_unknown="ignore")),
+        ]
+    )
     x_encoder = ColumnTransformer(
         transformers=[
             ("ord", ordinal_transformer, ordinal_features),
@@ -55,14 +61,6 @@ def x_and_y_preprocessing(x_dataframe):
     )
     y_encoder = sk_preprocessing.LabelEncoder()
     return x_encoder, y_encoder
-
-
-categorical_transformer = Pipeline(
-    steps=[
-        ("imputer", SimpleImputer(strategy="most_frequent")),
-        ("onehot", sk_preprocessing.OneHotEncoder(handle_unknown="ignore")),
-    ]
-)
 
 
 @pytest.fixture()

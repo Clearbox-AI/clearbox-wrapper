@@ -11,7 +11,6 @@ import sklearn.preprocessing as sk_preprocessing
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -187,7 +186,7 @@ def test_iris_pytorch_preprocessing_with_function_transformer(
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_keras_preprocessing_with_custom_transformer(
+def test_iris_pytorch_preprocessing_with_custom_transformer(
     custom_transformer, iris_training, iris_test, iris_pytorch_model, model_path
 ):
     x_train, y_train = iris_training
