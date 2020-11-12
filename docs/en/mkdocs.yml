@@ -1,0 +1,39 @@
+site_name: "Clearbox AI Wrapper"
+site_description: "An agnostic wrapper for the most common frameworks of ML models."
+site_author: "Clearbox AI"
+site_url: "https://clearbox.ai"
+
+theme:
+  name: material
+  logo: "images/cb_white_logo_compact.svg"
+  favicon: "images/favicon.ico"
+  palette:
+    scheme: default
+  font:
+    text: "Be Vietnam"
+    code: "Ubuntu Mono"
+  language: en
+  extra:
+    search:
+      tokenizer: '[\s\-\.\_]+'
+nav:
+  - index.md
+  - setup.md
+  - FAQ.md
+  - advanced-usage.md
+  - API:
+      - api/predictions.md
+      - api/explanations.md
+      - api/dataset.md
+      - api/feedback.md
+
+markdown_extensions:
+  - admonition
+  - codehilite:
+      guess_lang: false
+
+extra_css:
+  - stylesheets/extra.css
+
+repo_url: https://github.com/Clearbox-AI/clearbox-wrapper
+repo_name: Clearbox-AI/clearbox-wrapper
