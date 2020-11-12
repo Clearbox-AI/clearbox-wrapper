@@ -133,13 +133,6 @@ def test_boston_pytorch_no_preprocessing(boston_training_test, model_path):
     original_model_predictions = model(x_test).detach().numpy()
     loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
 
-    print("== ORIGINAL TYPE: {}".format(type(original_model_predictions)))
-    print("== LOADED TYPE: {}".format(type(loaded_model_predictions)))
-    print("== ORIGINAL SHAPE: {}".format(original_model_predictions.shape))
-    print("== LOADED SHAPE: {}".format(loaded_model_predictions.shape))
-    print("== ORIGINAL 5:\n{}".format(original_model_predictions[:5]))
-    print("== LOADED 5:\n{}".format(loaded_model_predictions[:5]))
-
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
