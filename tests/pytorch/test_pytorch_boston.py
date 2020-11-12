@@ -105,11 +105,11 @@ def custom_transformer():
 
 @pytest.fixture()
 def add_value_to_column_transformer():
-    def drop_column(dataframe_x):
+    def double_dataframe(dataframe_x):
         x_transformed = dataframe_x + dataframe_x
         return x_transformed
 
-    return drop_column
+    return double_dataframe
 
 
 def test_boston_pytorch_no_preprocessing(boston_training_test, model_path):
