@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -64,7 +63,6 @@ def train(model_inp, x_train, y_train, num_epochs=num_epochs):
                 "Epoch [%d]/[%d] running accumulative loss across all batches: %.3f"
                 % (epoch + 1, num_epochs, running_loss)
             )
-        running_loss = 0.0
 
 
 @pytest.fixture
