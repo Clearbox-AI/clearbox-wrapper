@@ -1,22 +1,43 @@
 [tool.poetry]
 name = "clearbox-wrapper"
-version = "0.1.2"
+version = "0.1.0"
 description = "An agnostic wrapper for the most common frameworks of ML models."
 authors = ["Clearbox AI <info@clearbox.ai>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://clearbox.ai"
 repository = "https://github.com/ClearBox-AI/clearbox-wrapper"
-keywords = ["ML wrapper", "machine learning model"]
+keywords = ["ML wrapper", "machine learning"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-cloudpickle = "^1.4.1"
-
+mlflow = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.8.3"
+flake8 = "^3.8.4"
+pytest = "^6.1.1"
+coverage = {extras = ["toml"], version = "^5.3"}
+pytest-cov = "^2.10.1"
+scikit-learn = "^0.23.2"
+black = "^20.8b1"
+pytest-lazy-fixture = "^0.6.3"
+PyYAML = "^5.3.1"
+xgboost = "^1.2.1"
+tensorflow = "^2.3.1"
+torch = "^1.7.0"
+torchvision = "^0.8.1"
+mkdocs-material = "^6.1.4"
+
+[tool.coverage.paths]
+source = ["clearbox_wrapper", "*/site-packages"]
+
+[tool.coverage.run]
+branch = true
+source = ["clearbox_wrapper"]
+
+[tool.coverage.report]
+show_missing = true
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
