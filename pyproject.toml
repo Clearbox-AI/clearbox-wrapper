@@ -10,7 +10,7 @@ repository = "https://github.com/ClearBox-AI/clearbox-wrapper"
 keywords = ["ML wrapper", "machine learning"]
 
 [tool.poetry.dependencies]
-python = "^3.6.2gi"
+python = "^3.6.2"
 mlflow = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
