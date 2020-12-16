@@ -1,16 +1,12 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
-
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+import pandas as pd
+import pytest
 from sklearn.compose import ColumnTransformer
-
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+import sklearn.preprocessing as sk_preprocessing
 import torch
 import torch.nn as nn
 import torch.optim as optim

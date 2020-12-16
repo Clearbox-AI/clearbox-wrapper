@@ -1,15 +1,12 @@
 import os
 from sys import version_info
 
-import pytest
-import yaml
-
 import numpy as np
-
+import pytest
 import sklearn.datasets as datasets
 import sklearn.preprocessing as sk_preprocessing
-
 import xgboost as xgb
+import yaml
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 

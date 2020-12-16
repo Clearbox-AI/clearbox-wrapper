@@ -1,15 +1,12 @@
-import pytest
-
 import numpy as np
-
+import pytest
 import sklearn.datasets as datasets
-import sklearn.linear_model as linear_model
-import sklearn.svm as svm
-import sklearn.neighbors as neighbors
-import sklearn.tree as tree
 import sklearn.ensemble as ensemble
-
+import sklearn.linear_model as linear_model
+import sklearn.neighbors as neighbors
 import sklearn.preprocessing as sk_preprocessing
+import sklearn.svm as svm
+import sklearn.tree as tree
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 

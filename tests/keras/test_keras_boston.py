@@ -1,15 +1,12 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
+import pandas as pd
+import pytest
 from sklearn.model_selection import train_test_split
-
-from tensorflow.keras.models import Sequential
+import sklearn.preprocessing as sk_preprocessing
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 

@@ -1,18 +1,14 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
-
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+import pandas as pd
+import pytest
 from sklearn.compose import ColumnTransformer
-
-from tensorflow.keras.models import Sequential
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+import sklearn.preprocessing as sk_preprocessing
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -209,7 +205,7 @@ def test_adult_keras_preprocessing_and_data_cleaning(
 
     x_test_cleaned = data_cleaning(x_test)
     x_test_transformed = x_preprocessor.transform(x_test_cleaned)
-    
+
     original_model_predictions = model.predict_proba(x_test_transformed)
     loaded_model_predictions = loaded_model.predict(x_test)
 

@@ -1,17 +1,14 @@
 import os
-from typing import Any, List, Dict, Optional, Union, Callable
-
 from tempfile import TemporaryDirectory
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import cloudpickle
-
-import numpy as np
-import pandas as pd
-
-import mlflow.pyfunc
 import mlflow.keras
+import mlflow.pyfunc
 import mlflow.pytorch
 from mlflow.utils.environment import _mlflow_conda_env
+import numpy as np
+import pandas as pd
 
 
 def _check_and_get_conda_env(

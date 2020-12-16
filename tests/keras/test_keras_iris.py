@@ -1,16 +1,13 @@
 import os
 from sys import version_info
 
-import pytest
-import yaml
-
 import numpy as np
-
+import pytest
 import sklearn.datasets as datasets
 import sklearn.preprocessing as sk_preprocessing
-
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+import yaml
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 

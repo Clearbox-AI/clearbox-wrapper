@@ -1,16 +1,13 @@
 import os
 from sys import version_info
 
-import pytest
-import yaml
-
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+import pytest
 import sklearn.preprocessing as sk_preprocessing
-
 import torch
 import torch.nn as nn
+import yaml
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -86,7 +83,7 @@ def iris_pytorch_model_training(model, x_train, y_train):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     idx = np.arange(x_train.size()[0])
-    for epoch in range(10):
+    for _epoch in range(10):
         np.random.shuffle(idx)
         for id in idx:
             y_pred = model(x_train[id])

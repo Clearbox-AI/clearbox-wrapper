@@ -1,19 +1,15 @@
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.linear_model as linear_model
-import sklearn.svm as svm
-import sklearn.neighbors as neighbors
-import sklearn.tree as tree
-import sklearn.ensemble as ensemble
-
-import sklearn.preprocessing as sk_preprocessing
-
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+import pandas as pd
+import pytest
 from sklearn.compose import ColumnTransformer
+import sklearn.ensemble as ensemble
+from sklearn.impute import SimpleImputer
+import sklearn.linear_model as linear_model
+import sklearn.neighbors as neighbors
+from sklearn.pipeline import Pipeline
+import sklearn.preprocessing as sk_preprocessing
+import sklearn.svm as svm
+import sklearn.tree as tree
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
