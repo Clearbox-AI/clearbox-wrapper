@@ -491,9 +491,14 @@ def test_iris_pytorch_conda_env(
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "torch={}".format(pytorch_version),
         "pip",
-        {"pip": ["mlflow", "cloudpickle=={}".format(cloudpickle_version)]},
+        {
+            "pip": [
+                "mlflow",
+                "cloudpickle=={}".format(cloudpickle_version),
+                "torch=={}".format(pytorch_version),
+            ]
+        },
     ]
     assert conda_env["channels"] == channels_list
     assert conda_env["dependencies"] == dependencies
@@ -512,17 +517,14 @@ def test_iris_pytorch_conda_env_additional_deps(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    conda_channels = ["special_channel", "custom_channel"]
-    conda_deps = ["keras=1.6.0", "fake_package=2.1.0"]
-    pip_deps = ["fastapi==0.52.1", "my_package==1.23.1"]
+    add_deps = [
+        "keras==1.6.0",
+        "fake_package==2.1.0",
+        "fastapi==0.52.1",
+        "my_package==1.23.1",
+    ]
 
-    cbw.save_model(
-        model_path,
-        model,
-        additional_conda_channels=conda_channels,
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-    )
+    cbw.save_model(model_path, model, additional_deps=add_deps)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -533,19 +535,19 @@ def test_iris_pytorch_conda_env_additional_deps(
     pytorch_version = torch.__version__
     cloudpickle_version = cloudpickle.__version__
 
-    channels_list = ["defaults", "conda-forge", "special_channel", "custom_channel"]
+    channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "keras=1.6.0",
-        "fake_package=2.1.0",
-        "torch={}".format(pytorch_version),
         "pip",
         {
             "pip": [
                 "mlflow",
                 "cloudpickle=={}".format(cloudpickle_version),
+                "keras==1.6.0",
+                "fake_package==2.1.0",
                 "fastapi==0.52.1",
                 "my_package==1.23.1",
+                "torch=={}".format(pytorch_version),
             ]
         },
     ]
@@ -553,7 +555,7 @@ def test_iris_pytorch_conda_env_additional_deps(
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_pytorch_conda_env_additional_channels_with_duplicates(
+def test_iris_pytorch_conda_env_additional_deps_with_duplicates(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
     x_train, y_train = iris_training
@@ -564,65 +566,6 @@ def test_iris_pytorch_conda_env_additional_channels_with_duplicates(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    conda_channels = ["special_channel", "custom_channel", "custom_channel"]
+    add_deps = ["keras==1.6.0", "keras==1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            model,
-            additional_conda_channels=conda_channels,
-        )
-
-
-def test_iris_pytorch_conda_env_additional_conda_deps_with_duplicates(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    conda_deps = ["torch=1.6.0"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, model, additional_conda_deps=conda_deps)
-
-
-def test_iris_pytorch_conda_env_additional_pip_deps_with_duplicates(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    pip_deps = ["keras==1.6.0", "keras==1.6.2"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, model, additional_pip_deps=pip_deps)
-
-
-def test_iris_pytorch_conda_env_additional_conda_and_pip_deps_with_common_deps(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    conda_deps = ["keras=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["torch==1.6.3", "fastapi>=0.52.1"]
-
-    with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            model,
-            additional_conda_deps=conda_deps,
-            additional_pip_deps=pip_deps,
-        )
+        cbw.save_model(model_path, model, additional_deps=add_deps)

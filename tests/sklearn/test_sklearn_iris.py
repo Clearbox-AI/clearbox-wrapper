@@ -445,9 +445,14 @@ def test_iris_sklearn_conda_env(sklearn_model, iris_data, tmpdir):
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "scikit-learn={}".format(sklearn_version),
         "pip",
-        {"pip": ["mlflow", "cloudpickle=={}".format(cloudpickle_version)]},
+        {
+            "pip": [
+                "mlflow",
+                "cloudpickle=={}".format(cloudpickle_version),
+                "scikit-learn=={}".format(sklearn_version),
+            ]
+        },
     ]
     assert conda_env["channels"] == channels_list
     assert conda_env["dependencies"] == dependencies
@@ -461,18 +466,15 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
     model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
-    conda_channels = ["special_channel", "custom_channel"]
-    conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["fastapi==0.52.1", "my_package==1.23.1"]
+    add_deps = [
+        "torch==1.6.0",
+        "tensorflow==2.1.0",
+        "fastapi==0.52.1",
+        "my_package==1.23.1",
+    ]
 
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(
-        tmp_model_path,
-        fitted_model,
-        additional_conda_channels=conda_channels,
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-    )
+    cbw.save_model(tmp_model_path, fitted_model, additional_deps=add_deps)
 
     with open(tmp_model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -483,19 +485,19 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
     sklearn_version = sklearn.__version__
     cloudpickle_version = cloudpickle.__version__
 
-    channels_list = ["defaults", "conda-forge", "special_channel", "custom_channel"]
+    channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "torch=1.6.0",
-        "tensorflow=2.1.0",
-        "scikit-learn={}".format(sklearn_version),
         "pip",
         {
             "pip": [
                 "mlflow",
                 "cloudpickle=={}".format(cloudpickle_version),
+                "torch==1.6.0",
+                "tensorflow==2.1.0",
                 "fastapi==0.52.1",
                 "my_package==1.23.1",
+                "scikit-learn=={}".format(sklearn_version),
             ]
         },
     ]
@@ -503,59 +505,12 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_sklearn_conda_env_additional_channels_with_duplicates(iris_data, tmpdir):
+def test_iris_sklearn_conda_env_additional_deps_with_duplicates(iris_data, tmpdir):
     x, y = iris_data
     model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
 
-    conda_channels = ["special_channel", "custom_channel", "custom_channel"]
+    add_deps = ["torch==1.6.0", "torch==1.6.2"]
     tmp_model_path = str(tmpdir + "/saved_model")
     with pytest.raises(ValueError):
-        cbw.save_model(
-            tmp_model_path,
-            fitted_model,
-            additional_conda_channels=conda_channels,
-        )
-
-
-def test_iris_sklearn_conda_env_additional_conda_deps_with_duplicates(
-    iris_data, tmpdir
-):
-    x, y = iris_data
-    model = linear_model.LogisticRegression(max_iter=150)
-    fitted_model = model.fit(x, y)
-
-    conda_deps = ["torch=1.6.0", "torch=1.6.2"]
-    tmp_model_path = str(tmpdir + "/saved_model")
-    with pytest.raises(ValueError):
-        cbw.save_model(tmp_model_path, fitted_model, additional_conda_deps=conda_deps)
-
-
-def test_iris_sklearn_conda_env_additional_pip_deps_with_duplicates(iris_data, tmpdir):
-    x, y = iris_data
-    model = linear_model.LogisticRegression(max_iter=150)
-    fitted_model = model.fit(x, y)
-
-    pip_deps = ["torch==1.6.0", "torch==1.6.2"]
-    tmp_model_path = str(tmpdir + "/saved_model")
-    with pytest.raises(ValueError):
-        cbw.save_model(tmp_model_path, fitted_model, additional_pip_deps=pip_deps)
-
-
-def test_iris_sklearn_conda_env_additional_conda_and_pip_deps_with_common_deps(
-    iris_data, tmpdir
-):
-    x, y = iris_data
-    model = linear_model.LogisticRegression(max_iter=150)
-    fitted_model = model.fit(x, y)
-
-    conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["torch==1.6.3", "fastapi>=0.52.1"]
-    tmp_model_path = str(tmpdir + "/saved_model")
-    with pytest.raises(ValueError):
-        cbw.save_model(
-            tmp_model_path,
-            fitted_model,
-            additional_conda_deps=conda_deps,
-            additional_pip_deps=pip_deps,
-        )
+        cbw.save_model(tmp_model_path, fitted_model, additional_deps=add_deps)

@@ -316,17 +316,14 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x, y)
 
-    conda_channels = ["special_channel", "custom_channel"]
-    conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["fastapi==0.52.1", "my_package==1.23.1"]
+    add_deps = [
+        "torch==1.6.0",
+        "tensorflow==2.1.0",
+        "fastapi==0.52.1",
+        "my_package==1.23.1",
+    ]
 
-    cbw.save_model(
-        model_path,
-        fitted_model,
-        additional_conda_channels=conda_channels,
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-    )
+    cbw.save_model(model_path, fitted_model, additional_deps=add_deps)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -337,16 +334,16 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
     xgb_version = xgb.__version__
     cloudpickle_version = cloudpickle.__version__
 
-    channels_list = ["defaults", "conda-forge", "special_channel", "custom_channel"]
+    channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "torch=1.6.0",
-        "tensorflow=2.1.0",
         "pip",
         {
             "pip": [
                 "mlflow",
                 "cloudpickle=={}".format(cloudpickle_version),
+                "torch==1.6.0",
+                "tensorflow==2.1.0",
                 "fastapi==0.52.1",
                 "my_package==1.23.1",
                 "xgboost=={}".format(xgb_version),
@@ -357,59 +354,11 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_xgboost_conda_env_additional_channels_with_duplicates(
-    iris_data, model_path
-):
+def test_iris_xgboost_conda_env_additional_deps_with_duplicates(iris_data, model_path):
     x, y = iris_data
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x, y)
 
-    conda_channels = ["special_channel", "custom_channel", "custom_channel"]
+    add_deps = ["torch==1.6.0", "torch==1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            fitted_model,
-            additional_conda_channels=conda_channels,
-        )
-
-
-def test_iris_xgboost_conda_env_additional_conda_deps_with_duplicates(
-    iris_data, model_path
-):
-    x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-
-    conda_deps = ["torch=1.6.0", "torch=1.6.2"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, additional_conda_deps=conda_deps)
-
-
-def test_iris_xgboost_conda_env_additional_pip_deps_with_duplicates(
-    iris_data, model_path
-):
-    x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-
-    pip_deps = ["torch==1.6.0", "torch==1.6.2"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, additional_pip_deps=pip_deps)
-
-
-def test_iris_xgboost_conda_env_additional_conda_and_pip_deps_with_common_deps(
-    iris_data, model_path
-):
-    x, y = iris_data
-    model = xgb.XGBClassifier()
-    fitted_model = model.fit(x, y)
-
-    conda_deps = ["torch=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["torch==1.6.3", "fastapi>=0.52.1"]
-    with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            fitted_model,
-            additional_conda_deps=conda_deps,
-            additional_pip_deps=pip_deps,
-        )
+        cbw.save_model(model_path, fitted_model, additional_deps=add_deps)
