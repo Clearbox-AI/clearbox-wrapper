@@ -22,7 +22,7 @@ lr.fit(X_train, y_train)
 
 from clearbox_wrapper.SklearnWrapper import SklearnWrapper
 
-class MyModel(SklearnWrapper):    
+class MyModel(SklearnWrapper):
     def predict(self, X):
         return self.model.predict(X)
 
@@ -46,7 +46,7 @@ foo.predict(data)
 
 #### XGBoost
 
-* Pima Indians Diabetes - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb) 
+* Pima Indians Diabetes - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb)
 
 #### PyTorch
 
