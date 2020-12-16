@@ -1,6 +1,6 @@
 import os
 from tempfile import TemporaryDirectory
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cloudpickle
 import mlflow.keras
@@ -76,11 +76,13 @@ def save_model(
 
     if preprocessing is not None:
 
-        def preprocessing_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
+        def preprocessing_function(
+            data: Any, _preprocessing=preprocessing
+        ) -> Union[pd.DataFrame, np.ndarray]:
             preprocessed_data = (
-                preprocessing.transform(data)
-                if "transform" in dir(preprocessing)
-                else preprocessing(data)
+                _preprocessing.transform(data)
+                if "transform" in dir(_preprocessing)
+                else _preprocessing(data)
             )
             return preprocessed_data
 
@@ -92,11 +94,13 @@ def save_model(
 
     if data_cleaning is not None:
 
-        def data_cleaning_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
+        def data_cleaning_function(
+            data: Any, _data_cleaning=data_cleaning
+        ) -> Union[pd.DataFrame, np.ndarray]:
             cleaned_data = (
-                data_cleaning.transform(data)
-                if "transform" in dir(data_cleaning)
-                else data_cleaning(data)
+                _data_cleaning.transform(data)
+                if "transform" in dir(_data_cleaning)
+                else _data_cleaning(data)
             )
             return cleaned_data
 
@@ -109,12 +113,12 @@ def save_model(
     return wrapped_model
 
 
-def load_model(path: str):
+def load_model(path: str) -> Any:
     loaded_model = mlflow.pyfunc.load_model(path)
     return loaded_model
 
 
-def load_model_preprocessing(path: str):
+def load_model_preprocessing(path: str) -> Tuple:
     loaded_model = mlflow.pyfunc.load_model(path)
 
     saved_preprocessing_path = os.path.join(path, "preprocessing.pkl")
@@ -127,7 +131,7 @@ def load_model_preprocessing(path: str):
     return loaded_model, loaded_preprocessing
 
 
-def load_model_preprocessing_data_cleaning(path: str):
+def load_model_preprocessing_data_cleaning(path: str) -> Tuple:
     loaded_model = mlflow.pyfunc.load_model(path)
 
     saved_preprocessing_path = os.path.join(path, "preprocessing.pkl")
@@ -153,7 +157,7 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
         model: Any,
         preprocessing: Optional[Callable] = None,
         data_cleaning: Optional[Callable] = None,
-    ) -> "ClearboxWrapper":
+    ) -> None:
         if preprocessing is None and data_cleaning is not None:
             raise ValueError(
                 "Attribute 'preprocessing' is None but attribute "
