@@ -57,7 +57,7 @@ def test_iris_xgboost_no_preprocessing(iris_data, model_path):
     x, y = iris_data
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+    cbw.save_model(model_path, fitted_model, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict_proba(x)
@@ -82,7 +82,7 @@ def test_iris_xgboost_preprocessing(sk_transformer, iris_data, model_path):
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_transformer)
+    cbw.save_model(model_path, fitted_model, sk_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed)
@@ -98,7 +98,7 @@ def test_iris_xgboost_preprocessing_with_function_transformer(
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_function_transformer)
+    cbw.save_model(model_path, fitted_model, sk_function_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed)
@@ -114,7 +114,7 @@ def test_iris_xgboost_preprocessing_with_custom_transformer(
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, custom_transformer)
+    cbw.save_model(model_path, fitted_model, custom_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed)
@@ -141,7 +141,9 @@ def test_iris_xgboost_data_cleaning_and_preprocessing(
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    cbw.save_model(
+        model_path, fitted_model, preprocessor, drop_column_transformer, zip=False
+    )
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed)
@@ -158,14 +160,16 @@ def test_iris_xgboost_data_cleaning_without_preprocessing(iris_data, model_path)
     fitted_model = model.fit(x_transformed, y)
 
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, data_cleaning=drop_column_transformer)
+        cbw.save_model(
+            model_path, fitted_model, data_cleaning=drop_column_transformer, zip=False
+        )
 
 
 def test_iris_xgboost_load_preprocessing_without_preprocessing(iris_data, model_path):
     x, y = iris_data
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+    cbw.save_model(model_path, fitted_model, zip=False)
 
     with pytest.raises(FileNotFoundError):
         loaded_model, preprocessing = cbw.load_model_preprocessing(model_path)
@@ -178,7 +182,7 @@ def test_iris_xgboost_load_data_cleaning_without_data_cleaning(iris_data, model_
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, sk_transformer)
+    cbw.save_model(model_path, fitted_model, sk_transformer, zip=False)
 
     with pytest.raises(FileNotFoundError):
         (
@@ -204,7 +208,7 @@ def test_iris_xgboost_get_preprocessed_data(preprocessor, iris_data, model_path)
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor)
+    cbw.save_model(model_path, fitted_model, preprocessor, zip=False)
 
     loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(model_path)
     x_transformed_by_loaded_preprocessing = loaded_preprocessing(x)
@@ -230,7 +234,9 @@ def test_iris_xgboost_get_cleaned_data(
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    cbw.save_model(
+        model_path, fitted_model, preprocessor, drop_column_transformer, zip=False
+    )
 
     (
         loaded_model,
@@ -261,7 +267,9 @@ def test_iris_xgboost_get_cleaned_and_processed_data(
 
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x_transformed, y)
-    cbw.save_model(model_path, fitted_model, preprocessor, drop_column_transformer)
+    cbw.save_model(
+        model_path, fitted_model, preprocessor, drop_column_transformer, zip=False
+    )
 
     (
         loaded_model,
@@ -282,7 +290,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
     x, y = iris_data
     model = xgb.XGBClassifier()
     fitted_model = model.fit(x, y)
-    cbw.save_model(model_path, fitted_model)
+    cbw.save_model(model_path, fitted_model, zip=False)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -323,7 +331,7 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
         "my_package==1.23.1",
     ]
 
-    cbw.save_model(model_path, fitted_model, additional_deps=add_deps)
+    cbw.save_model(model_path, fitted_model, additional_deps=add_deps, zip=False)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -361,4 +369,4 @@ def test_iris_xgboost_conda_env_additional_deps_with_duplicates(iris_data, model
 
     add_deps = ["torch==1.6.0", "torch==1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, fitted_model, additional_deps=add_deps)
+        cbw.save_model(model_path, fitted_model, additional_deps=add_deps, zip=False)

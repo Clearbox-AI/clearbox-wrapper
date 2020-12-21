@@ -226,7 +226,7 @@ def test_adult_pytorch_preprocessing(adult_training, adult_test, model_path):
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -261,7 +261,7 @@ def test_adult_pytorch_preprocessing_and_data_cleaning(
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
-    cbw.save_model(model_path, model, preprocessing_function, data_cleaning)
+    cbw.save_model(model_path, model, preprocessing_function, data_cleaning, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_cleaned = data_cleaning(x_test)

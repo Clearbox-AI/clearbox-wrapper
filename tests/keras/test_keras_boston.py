@@ -75,7 +75,7 @@ def test_boston_keras_no_preprocessing(boston_training_test, keras_model, model_
 
     model = keras_model
     model.fit(x_train, y_train, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model)
+    cbw.save_model(model_path, model, zip=False)
 
     loaded_model = cbw.load_model(model_path)
 
@@ -103,7 +103,7 @@ def test_boston_keras_preprocessing(
 
     model = keras_model
     model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, sk_transformer)
+    cbw.save_model(model_path, model, sk_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_transformer.transform(x_test)
@@ -121,7 +121,7 @@ def test_boston_keras_preprocessing_with_function_transformer(
 
     model = keras_model
     model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, sk_function_transformer)
+    cbw.save_model(model_path, model, sk_function_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_function_transformer.transform(x_test)
@@ -139,7 +139,7 @@ def test_boston_keras_preprocessing_with_custom_transformer(
 
     model = keras_model
     model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, custom_transformer)
+    cbw.save_model(model_path, model, custom_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = custom_transformer(x_test)
@@ -173,7 +173,9 @@ def test_boston_keras_data_cleaning_and_preprocessing(
 
     model = keras_model
     model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, preprocessor, add_value_to_column_transformer)
+    cbw.save_model(
+        model_path, model, preprocessor, add_value_to_column_transformer, zip=False
+    )
 
     loaded_model = cbw.load_model(model_path)
     x_test_cleaned = add_value_to_column_transformer(x_test)

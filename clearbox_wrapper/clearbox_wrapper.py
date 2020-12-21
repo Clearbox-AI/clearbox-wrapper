@@ -10,6 +10,8 @@ from mlflow.utils.environment import _mlflow_conda_env
 import numpy as np
 import pandas as pd
 
+from .utils import zip_directory
+
 
 def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
     pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
@@ -52,6 +54,7 @@ def save_model(
     preprocessing: Optional[Callable] = None,
     data_cleaning: Optional[Callable] = None,
     additional_deps: List = None,
+    zip: bool = True,
 ) -> "ClearboxWrapper":
 
     conda_env = _check_and_get_conda_env(model, additional_deps)
@@ -109,6 +112,9 @@ def save_model(
             os.path.join(path, saved_data_cleaning_subpath), "wb"
         ) as data_cleaning_output_file:
             cloudpickle.dump(data_cleaning_function, data_cleaning_output_file)
+
+    if zip:
+        zip_directory(path)
 
     return wrapped_model
 

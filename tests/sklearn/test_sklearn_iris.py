@@ -202,7 +202,7 @@ def test_iris_sklearn_no_preprocessing_save_and_load(sklearn_model, iris_data, t
     x, y = iris_data
     fitted_model = sklearn_model.fit(x, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model)
+    cbw.save_model(tmp_model_path, fitted_model, zip=False)
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(x[:5])
     loaded_model_predictions = loaded_model.predict(x[:5])
@@ -235,7 +235,7 @@ def test_iris_sklearn_preprocessing_save_and_load(
     x_transformed = preprocessor.fit_transform(x)
     fitted_model = sklearn_model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, preprocessor)
+    cbw.save_model(tmp_model_path, fitted_model, preprocessor, zip=False)
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
     loaded_model_predictions = loaded_model.predict(x[:5])
@@ -270,7 +270,7 @@ def test_iris_sklearn_data_cleaning_and_preprocessing_save_and_load(
     x_transformed = preprocessor.fit_transform(x_transformed)
     fitted_model = sklearn_model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaning)
+    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaning, zip=False)
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
     loaded_model_predictions = loaded_model.predict(x[:5])
@@ -282,7 +282,7 @@ def test_iris_sklearn_load_preprocessing_without_preprocessing(iris_data, tmpdir
     model = linear_model.LogisticRegression(max_iter=150)
     fitted_model = model.fit(x, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model)
+    cbw.save_model(tmp_model_path, fitted_model, zip=False)
     with pytest.raises(FileNotFoundError):
         loaded_model, preprocessing = cbw.load_model_preprocessing(tmp_model_path)
 
@@ -294,7 +294,7 @@ def test_iris_sklearn_load_data_cleaning_without_data_cleaning(iris_data, tmpdir
     x_transformed = sk_transformer.fit_transform(x)
     fitted_model = model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, sk_transformer)
+    cbw.save_model(tmp_model_path, fitted_model, sk_transformer, zip=False)
     with pytest.raises(FileNotFoundError):
         (
             loaded_model,
@@ -329,7 +329,7 @@ def test_iris_sklearn_get_preprocessed_data(
     x_transformed = preprocessor.fit_transform(x)
     fitted_model = sklearn_model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, preprocessor)
+    cbw.save_model(tmp_model_path, fitted_model, preprocessor, zip=False)
     loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(tmp_model_path)
     x_transformed_by_loaded_preprocessing = loaded_preprocessing(x)
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
@@ -363,7 +363,7 @@ def test_iris_sklearn_get_cleaned_data(
     x_transformed = preprocessor.fit_transform(x_cleaned)
     fitted_model = sklearn_model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaner)
+    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaner, zip=False)
     (
         loaded_model,
         loaded_preprocessing,
@@ -401,7 +401,7 @@ def test_iris_sklearn_get_cleaned_and_processed_data(
     x_transformed = preprocessor.fit_transform(x_cleaned)
     fitted_model = sklearn_model.fit(x_transformed, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaner)
+    cbw.save_model(tmp_model_path, fitted_model, preprocessor, data_cleaner, zip=False)
     (
         loaded_model,
         loaded_preprocessing,
@@ -431,7 +431,7 @@ def test_iris_sklearn_conda_env(sklearn_model, iris_data, tmpdir):
     x, y = iris_data
     fitted_model = sklearn_model.fit(x, y)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model)
+    cbw.save_model(tmp_model_path, fitted_model, zip=False)
 
     with open(tmp_model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -474,7 +474,7 @@ def test_iris_sklearn_conda_env_additional_deps(iris_data, tmpdir):
     ]
 
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, additional_deps=add_deps)
+    cbw.save_model(tmp_model_path, fitted_model, additional_deps=add_deps, zip=False)
 
     with open(tmp_model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -513,4 +513,6 @@ def test_iris_sklearn_conda_env_additional_deps_with_duplicates(iris_data, tmpdi
     add_deps = ["torch==1.6.0", "torch==1.6.2"]
     tmp_model_path = str(tmpdir + "/saved_model")
     with pytest.raises(ValueError):
-        cbw.save_model(tmp_model_path, fitted_model, additional_deps=add_deps)
+        cbw.save_model(
+            tmp_model_path, fitted_model, additional_deps=add_deps, zip=False
+        )

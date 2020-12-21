@@ -166,7 +166,7 @@ def test_adult_xgboost_preprocessing(adult_training, adult_test, model_path):
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor)
+    cbw.save_model(model_path, fitted_model, x_preprocessor, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = x_preprocessor.transform(x_test)
@@ -200,7 +200,7 @@ def test_adult_xgboost_preprocessing_and_data_cleaning(
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor, data_cleaning)
+    cbw.save_model(model_path, fitted_model, x_preprocessor, data_cleaning, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_cleaned = data_cleaning(x_test)

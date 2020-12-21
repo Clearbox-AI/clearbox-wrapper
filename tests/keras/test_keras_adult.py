@@ -172,7 +172,7 @@ def test_adult_keras_preprocessing(adult_training, adult_test, model_path):
 
     model = keras_model(x_train_transformed.shape[1])
     model.fit(x_train_transformed, y_train_transformed, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, x_preprocessor)
+    cbw.save_model(model_path, model, x_preprocessor, zip=False)
 
     loaded_model = cbw.load_model(model_path)
 
@@ -199,7 +199,7 @@ def test_adult_keras_preprocessing_and_data_cleaning(
 
     model = keras_model(x_train_transformed.shape[1])
     model.fit(x_train_transformed, y_train_transformed, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, x_preprocessor, data_cleaning)
+    cbw.save_model(model_path, model, x_preprocessor, data_cleaning, zip=False)
 
     loaded_model = cbw.load_model(model_path)
 

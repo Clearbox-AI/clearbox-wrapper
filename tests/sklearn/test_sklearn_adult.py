@@ -164,7 +164,7 @@ def test_adult_sklearn_preprocessing(sklearn_model, adult_training, adult_test, 
 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor)
+    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, zip=False)
 
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(
@@ -198,7 +198,9 @@ def test_adult_sklearn_preprocessing_and_data_cleaning(
 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, data_cleaning)
+    cbw.save_model(
+        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+    )
 
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(
@@ -222,7 +224,9 @@ def test_adult_sklearn_get_cleaned_data(
 
     fitted_model = tree.DecisionTreeClassifier().fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, data_cleaning)
+    cbw.save_model(
+        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+    )
 
     (
         loaded_model,
@@ -252,7 +256,9 @@ def test_adult_sklearn_get_preprocessed_data(
 
     fitted_model = tree.DecisionTreeClassifier().fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
-    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, data_cleaning)
+    cbw.save_model(
+        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+    )
 
     (
         loaded_model,
