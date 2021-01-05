@@ -1,16 +1,13 @@
 import os
 from sys import version_info
 
-import pytest
-import yaml
-
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+import pytest
 import sklearn.preprocessing as sk_preprocessing
-
 import torch
 import torch.nn as nn
+import yaml
 
 import clearbox_wrapper.clearbox_wrapper as cbw
 
@@ -86,7 +83,7 @@ def iris_pytorch_model_training(model, x_train, y_train):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     idx = np.arange(x_train.size()[0])
-    for epoch in range(10):
+    for _epoch in range(10):
         np.random.shuffle(idx)
         for id in idx:
             y_pred = model(x_train[id])
@@ -112,7 +109,7 @@ def test_iris_pytorch_no_preprocessing(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    cbw.save_model(model_path, model)
+    cbw.save_model(model_path, model, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     original_model_predictions = model(x_test).detach().numpy()
@@ -149,7 +146,7 @@ def test_iris_pytorch_preprocessing(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -176,7 +173,7 @@ def test_iris_pytorch_preprocessing_with_function_transformer(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -203,7 +200,7 @@ def test_iris_pytorch_preprocessing_with_custom_transformer(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -248,7 +245,11 @@ def test_iris_pytorch_data_cleaning_and_preprocessing(
     iris_pytorch_model_training(model, x_transformed, y_train)
 
     cbw.save_model(
-        model_path, model, preprocessing_function, add_value_to_column_transformer
+        model_path,
+        model,
+        preprocessing_function,
+        add_value_to_column_transformer,
+        zip=False,
     )
     loaded_model = cbw.load_model(model_path)
 
@@ -284,7 +285,9 @@ def test_iris_pytorch_data_cleaning_without_preprocessing(
     iris_pytorch_model_training(model, x_transformed, y_train)
 
     with pytest.raises(ValueError):
-        cbw.save_model(model_path, model, data_cleaning=add_value_to_column_transformer)
+        cbw.save_model(
+            model_path, model, data_cleaning=add_value_to_column_transformer, zip=False
+        )
 
 
 def test_iris_pytorch_load_preprocessing_without_preprocessing(
@@ -298,7 +301,7 @@ def test_iris_pytorch_load_preprocessing_without_preprocessing(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    cbw.save_model(model_path, model)
+    cbw.save_model(model_path, model, zip=False)
 
     with pytest.raises(FileNotFoundError):
         loaded_model, preprocessing = cbw.load_model_preprocessing(model_path)
@@ -322,7 +325,7 @@ def test_iris_pytorch_load_data_cleaning_without_data_cleaning(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
 
     with pytest.raises(FileNotFoundError):
         (
@@ -358,7 +361,7 @@ def test_iris_pytorch_get_preprocessed_data(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(model_path)
 
     x_transformed_by_loaded_preprocessing = (
@@ -404,7 +407,11 @@ def test_iris_pytorch_get_cleaned_data(
     iris_pytorch_model_training(model, x_transformed, y_train)
 
     cbw.save_model(
-        model_path, model, preprocessing_function, add_value_to_column_transformer
+        model_path,
+        model,
+        preprocessing_function,
+        add_value_to_column_transformer,
+        zip=False,
     )
 
     (
@@ -451,7 +458,11 @@ def test_iris_pytorch_get_cleaned_and_processed_data(
     iris_pytorch_model_training(model, x_transformed, y_train)
 
     cbw.save_model(
-        model_path, model, preprocessing_function, add_value_to_column_transformer
+        model_path,
+        model,
+        preprocessing_function,
+        add_value_to_column_transformer,
+        zip=False,
     )
 
     (
@@ -480,7 +491,7 @@ def test_iris_pytorch_conda_env(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    cbw.save_model(model_path, model)
+    cbw.save_model(model_path, model, zip=False)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -494,9 +505,14 @@ def test_iris_pytorch_conda_env(
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "torch={}".format(pytorch_version),
         "pip",
-        {"pip": ["mlflow", "cloudpickle=={}".format(cloudpickle_version)]},
+        {
+            "pip": [
+                "mlflow",
+                "cloudpickle=={}".format(cloudpickle_version),
+                "torch=={}".format(pytorch_version),
+            ]
+        },
     ]
     assert conda_env["channels"] == channels_list
     assert conda_env["dependencies"] == dependencies
@@ -515,17 +531,14 @@ def test_iris_pytorch_conda_env_additional_deps(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    conda_channels = ["special_channel", "custom_channel"]
-    conda_deps = ["keras=1.6.0", "fake_package=2.1.0"]
-    pip_deps = ["fastapi==0.52.1", "my_package==1.23.1"]
+    add_deps = [
+        "keras==1.6.0",
+        "fake_package==2.1.0",
+        "fastapi==0.52.1",
+        "my_package==1.23.1",
+    ]
 
-    cbw.save_model(
-        model_path,
-        model,
-        additional_conda_channels=conda_channels,
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-    )
+    cbw.save_model(model_path, model, additional_deps=add_deps, zip=False)
 
     with open(model_path + "/conda.yaml", "r") as f:
         conda_env = yaml.safe_load(f)
@@ -536,19 +549,19 @@ def test_iris_pytorch_conda_env_additional_deps(
     pytorch_version = torch.__version__
     cloudpickle_version = cloudpickle.__version__
 
-    channels_list = ["defaults", "conda-forge", "special_channel", "custom_channel"]
+    channels_list = ["defaults", "conda-forge"]
     dependencies = [
         "python={}".format(python_version),
-        "keras=1.6.0",
-        "fake_package=2.1.0",
-        "torch={}".format(pytorch_version),
         "pip",
         {
             "pip": [
                 "mlflow",
                 "cloudpickle=={}".format(cloudpickle_version),
+                "keras==1.6.0",
+                "fake_package==2.1.0",
                 "fastapi==0.52.1",
                 "my_package==1.23.1",
+                "torch=={}".format(pytorch_version),
             ]
         },
     ]
@@ -556,7 +569,7 @@ def test_iris_pytorch_conda_env_additional_deps(
     assert conda_env["dependencies"] == dependencies
 
 
-def test_iris_pytorch_conda_env_additional_channels_with_duplicates(
+def test_iris_pytorch_conda_env_additional_deps_with_duplicates(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
     x_train, y_train = iris_training
@@ -567,65 +580,6 @@ def test_iris_pytorch_conda_env_additional_channels_with_duplicates(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
 
-    conda_channels = ["special_channel", "custom_channel", "custom_channel"]
+    add_deps = ["keras==1.6.0", "keras==1.6.2"]
     with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            model,
-            additional_conda_channels=conda_channels,
-        )
-
-
-def test_iris_pytorch_conda_env_additional_conda_deps_with_duplicates(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    conda_deps = ["torch=1.6.0"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, model, additional_conda_deps=conda_deps)
-
-
-def test_iris_pytorch_conda_env_additional_pip_deps_with_duplicates(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    pip_deps = ["keras==1.6.0", "keras==1.6.2"]
-    with pytest.raises(ValueError):
-        cbw.save_model(model_path, model, additional_pip_deps=pip_deps)
-
-
-def test_iris_pytorch_conda_env_additional_conda_and_pip_deps_with_common_deps(
-    iris_training, iris_test, iris_pytorch_model, model_path
-):
-    x_train, y_train = iris_training
-
-    x_train = torch.Tensor(x_train.values)
-    y_train = torch.Tensor(y_train.values)
-
-    model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
-
-    conda_deps = ["keras=1.6.0", "tensorflow=2.1.0"]
-    pip_deps = ["torch==1.6.3", "fastapi>=0.52.1"]
-
-    with pytest.raises(ValueError):
-        cbw.save_model(
-            model_path,
-            model,
-            additional_conda_deps=conda_deps,
-            additional_pip_deps=pip_deps,
-        )
+        cbw.save_model(model_path, model, additional_deps=add_deps, zip=False)

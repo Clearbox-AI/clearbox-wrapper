@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "clearbox-wrapper"
-version = "0.2.1"
+version = "0.2.2"
 description = "An agnostic wrapper for the most common frameworks of ML models."
 authors = ["Clearbox AI <info@clearbox.ai>"]
 license = "Apache-2.0"
@@ -26,6 +26,10 @@ xgboost = "^1.2.1"
 tensorflow = "^2.3.1"
 torch = "^1.7.0"
 torchvision = "^0.8.1"
+flake8-black = "^0.2.1"
+flake8-bugbear = "^20.11.1"
+flake8-import-order = "^0.18.1"
+mypy = "^0.790"
 
 [tool.coverage.paths]
 source = ["clearbox_wrapper", "*/site-packages"]

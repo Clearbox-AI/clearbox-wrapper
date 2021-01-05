@@ -1,16 +1,12 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
-
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+import pandas as pd
+import pytest
 from sklearn.compose import ColumnTransformer
-
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+import sklearn.preprocessing as sk_preprocessing
 import xgboost as xgb
 
 import clearbox_wrapper.clearbox_wrapper as cbw
@@ -170,7 +166,7 @@ def test_adult_xgboost_preprocessing(adult_training, adult_test, model_path):
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor)
+    cbw.save_model(model_path, fitted_model, x_preprocessor, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = x_preprocessor.transform(x_test)
@@ -204,7 +200,7 @@ def test_adult_xgboost_preprocessing_and_data_cleaning(
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor, data_cleaning)
+    cbw.save_model(model_path, fitted_model, x_preprocessor, data_cleaning, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_cleaned = data_cleaning(x_test)

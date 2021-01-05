@@ -1,13 +1,10 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
+import pandas as pd
+import pytest
 from sklearn.model_selection import train_test_split
-
+import sklearn.preprocessing as sk_preprocessing
 import torch
 import torch.nn as nn
 
@@ -125,7 +122,7 @@ def test_boston_pytorch_no_preprocessing(boston_training_test, model_path):
     model.train()
     train(model, x_train, y_train)
 
-    cbw.save_model(model_path, model)
+    cbw.save_model(model_path, model, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     original_model_predictions = model(x_test).detach().numpy()
@@ -159,7 +156,7 @@ def test_boston_pytorch_preprocessing(sk_transformer, boston_training_test, mode
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -186,7 +183,7 @@ def test_boston_pytorch_preprocessing_with_function_transformer(
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -213,7 +210,7 @@ def test_boston_pytorch_preprocessing_with_custom_transformer(
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function)
+    cbw.save_model(model_path, model, preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
@@ -253,7 +250,11 @@ def test_boston_pytorch__data_cleaning_and_preprocessing(
     train(model, x_transformed, y_train)
 
     cbw.save_model(
-        model_path, model, preprocessing_function, add_value_to_column_transformer
+        model_path,
+        model,
+        preprocessing_function,
+        add_value_to_column_transformer,
+        zip=False,
     )
     loaded_model = cbw.load_model(model_path)
 

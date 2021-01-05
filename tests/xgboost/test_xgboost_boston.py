@@ -1,13 +1,10 @@
 import os
 
-import pytest
-
-import pandas as pd
 import numpy as np
-
-import sklearn.preprocessing as sk_preprocessing
+import pandas as pd
+import pytest
 from sklearn.model_selection import train_test_split
-
+import sklearn.preprocessing as sk_preprocessing
 import xgboost as xgb
 
 import clearbox_wrapper.clearbox_wrapper as cbw
@@ -64,7 +61,7 @@ def test_boston_xgboost_no_preprocessing(boston_training_test, model_path):
     x_train, x_test, y_train, _ = boston_training_test
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train, y_train)
-    cbw.save_model(model_path, fitted_model)
+    cbw.save_model(model_path, fitted_model, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = fitted_model.predict(x_test)
@@ -89,7 +86,7 @@ def test_boston_xgboost_preprocessing(sk_transformer, boston_training_test, mode
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, sk_transformer)
+    cbw.save_model(model_path, fitted_model, sk_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_transformer.transform(x_test)
@@ -106,7 +103,7 @@ def test_boston_xgboost_preprocessing_with_function_transformer(
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, sk_function_transformer)
+    cbw.save_model(model_path, fitted_model, sk_function_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_function_transformer.transform(x_test)
@@ -123,7 +120,7 @@ def test_boston_xgboost_preprocessing_with_custom_transformer(
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, custom_transformer)
+    cbw.save_model(model_path, fitted_model, custom_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = custom_transformer(x_test)
@@ -152,7 +149,11 @@ def test_boston_xgboost_data_cleaning_and_preprocessing(
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
     cbw.save_model(
-        model_path, fitted_model, preprocessor, add_value_to_column_transformer
+        model_path,
+        fitted_model,
+        preprocessor,
+        add_value_to_column_transformer,
+        zip=False,
     )
 
     loaded_model = cbw.load_model(model_path)

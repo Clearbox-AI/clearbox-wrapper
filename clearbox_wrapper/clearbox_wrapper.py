@@ -1,41 +1,27 @@
 import os
-from typing import Any, List, Dict, Optional, Union, Callable
-
 from tempfile import TemporaryDirectory
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cloudpickle
-
+import mlflow.keras
+import mlflow.pyfunc
+import mlflow.pytorch
+from mlflow.utils.environment import _mlflow_conda_env
 import numpy as np
 import pandas as pd
 
-import mlflow.pyfunc
-import mlflow.keras
-import mlflow.pytorch
-from mlflow.utils.environment import _mlflow_conda_env
+from .utils import zip_directory
 
 
-def _check_and_get_conda_env(
-    model: Any,
-    additional_conda_deps: List = None,
-    additional_pip_deps: List = None,
-    additional_conda_channels: List = None,
-) -> Dict:
+def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
     pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
-    conda_deps = []
 
-    if additional_pip_deps is not None:
-        pip_deps += additional_pip_deps
-    if additional_conda_deps is not None:
-        conda_deps += additional_conda_deps
-
-    if additional_conda_channels is not None and len(additional_conda_channels) > len(
-        set(additional_conda_channels)
-    ):
-        raise ValueError("Each element of 'additional_conda_channels' must be unique.")
+    if additional_deps is not None:
+        pip_deps += additional_deps
 
     if "__getstate__" in dir(model) and "_sklearn_version" in model.__getstate__():
-        conda_deps.append(
-            "scikit-learn={}".format(model.__getstate__()["_sklearn_version"])
+        pip_deps.append(
+            "scikit-learn=={}".format(model.__getstate__()["_sklearn_version"])
         )
     if "xgb" in model.__class__.__name__.lower():
         import xgboost
@@ -49,37 +35,17 @@ def _check_and_get_conda_env(
     if "torch" in str(model.__class__):
         import torch
 
-        conda_deps.append("torch={}".format(torch.__version__))
-
-    unique_conda_deps = [dep.split("=")[0] for dep in conda_deps]
-    if len(unique_conda_deps) > len(set(unique_conda_deps)):
-        raise ValueError(
-            "Multiple occurences of a conda dependency is not allowed: {}".format(
-                conda_deps
-            )
-        )
+        pip_deps.append("torch=={}".format(torch.__version__))
 
     unique_pip_deps = [dep.split("==")[0] for dep in pip_deps]
     if len(unique_pip_deps) > len(set(unique_pip_deps)):
         raise ValueError(
-            "Multiple occurences of a pip dependency is not allowed: {}".format(
+            "Multiple occurences of the same dependency is not allowed: {}".format(
                 pip_deps
             )
         )
 
-    conda_pip_common_deps = set(unique_conda_deps).intersection(set(unique_pip_deps))
-    if len(conda_pip_common_deps) > 0:
-        raise ValueError(
-            "Some deps have been passed for both conda and pip: {}".format(
-                conda_pip_common_deps
-            )
-        )
-
-    return _mlflow_conda_env(
-        additional_conda_deps=conda_deps,
-        additional_pip_deps=pip_deps,
-        additional_conda_channels=additional_conda_channels,
-    )
+    return _mlflow_conda_env(additional_pip_deps=pip_deps)
 
 
 def save_model(
@@ -87,14 +53,11 @@ def save_model(
     model: Any,
     preprocessing: Optional[Callable] = None,
     data_cleaning: Optional[Callable] = None,
-    additional_conda_deps: List = None,
-    additional_pip_deps: List = None,
-    additional_conda_channels: List = None,
+    additional_deps: List = None,
+    zip: bool = True,
 ) -> "ClearboxWrapper":
 
-    conda_env = _check_and_get_conda_env(
-        model, additional_conda_deps, additional_pip_deps, additional_conda_channels
-    )
+    conda_env = _check_and_get_conda_env(model, additional_deps)
 
     if "keras" in str(model.__class__):
         with TemporaryDirectory() as tmp_dir:
@@ -116,11 +79,13 @@ def save_model(
 
     if preprocessing is not None:
 
-        def preprocessing_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
+        def preprocessing_function(
+            data: Any, _preprocessing=preprocessing
+        ) -> Union[pd.DataFrame, np.ndarray]:
             preprocessed_data = (
-                preprocessing.transform(data)
-                if "transform" in dir(preprocessing)
-                else preprocessing(data)
+                _preprocessing.transform(data)
+                if "transform" in dir(_preprocessing)
+                else _preprocessing(data)
             )
             return preprocessed_data
 
@@ -132,11 +97,13 @@ def save_model(
 
     if data_cleaning is not None:
 
-        def data_cleaning_function(data: Any) -> Union[pd.DataFrame, np.ndarray]:
+        def data_cleaning_function(
+            data: Any, _data_cleaning=data_cleaning
+        ) -> Union[pd.DataFrame, np.ndarray]:
             cleaned_data = (
-                data_cleaning.transform(data)
-                if "transform" in dir(data_cleaning)
-                else data_cleaning(data)
+                _data_cleaning.transform(data)
+                if "transform" in dir(_data_cleaning)
+                else _data_cleaning(data)
             )
             return cleaned_data
 
@@ -146,15 +113,18 @@ def save_model(
         ) as data_cleaning_output_file:
             cloudpickle.dump(data_cleaning_function, data_cleaning_output_file)
 
+    if zip:
+        zip_directory(path)
+
     return wrapped_model
 
 
-def load_model(path: str):
+def load_model(path: str) -> Any:
     loaded_model = mlflow.pyfunc.load_model(path)
     return loaded_model
 
 
-def load_model_preprocessing(path: str):
+def load_model_preprocessing(path: str) -> Tuple:
     loaded_model = mlflow.pyfunc.load_model(path)
 
     saved_preprocessing_path = os.path.join(path, "preprocessing.pkl")
@@ -167,7 +137,7 @@ def load_model_preprocessing(path: str):
     return loaded_model, loaded_preprocessing
 
 
-def load_model_preprocessing_data_cleaning(path: str):
+def load_model_preprocessing_data_cleaning(path: str) -> Tuple:
     loaded_model = mlflow.pyfunc.load_model(path)
 
     saved_preprocessing_path = os.path.join(path, "preprocessing.pkl")
@@ -193,7 +163,7 @@ class ClearboxWrapper(mlflow.pyfunc.PythonModel):
         model: Any,
         preprocessing: Optional[Callable] = None,
         data_cleaning: Optional[Callable] = None,
-    ) -> "ClearboxWrapper":
+    ) -> None:
         if preprocessing is None and data_cleaning is not None:
             raise ValueError(
                 "Attribute 'preprocessing' is None but attribute "
