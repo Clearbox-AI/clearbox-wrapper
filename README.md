@@ -1,5 +1,8 @@
-# Clearbox Wrapper
+[![Tests](https://github.com/Clearbox-AI/clearbox-wrapper/workflows/Tests/badge.svg)](https://github.com/Clearbox-AI/clearbox-wrapper/actions?workflow=Tests)
 
+[![PyPI](https://img.shields.io/pypi/v/clearbox-wrapper.svg)](https://pypi.org/project/clearbox-wrapper/)
+
+# Clearbox Wrapper
 
 Clearbox Wrapper is an agnostic wrapper for the most used machine learning frameworks, with the aim to facilitate the transfer of models between different cloud environments and to provide a common interface for generating output predictions.
 
@@ -8,7 +11,6 @@ Clearbox Wrapper is an agnostic wrapper for the most used machine learning frame
 With a few lines of code it is possible to create a wrapper for your model, simply specifying how to perform a prediction and how to carry out input preprocessing operations if necessary.
 
 For example, if you have just trained a model using Sklearn and your input doesn't need preprocessing, just define a class that inherits from SklearnWrapper and specify how to perform the predict method. After that, it will be sufficient to use the Sklearn wrapper _dump_ method to have your model serialized on the disk.
-
 
 ```python
 from sklearn.linear_model import LinearRegression
@@ -42,19 +44,19 @@ foo.predict(data)
 
 #### Sklearn
 
-* Boston Housing Dataset - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/sklearn/sklearn_boston_dataset.ipynb)
+- Boston Housing Dataset - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/sklearn/sklearn_boston_dataset.ipynb)
 
 #### XGBoost
 
-* Pima Indians Diabetes - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb)
+- Pima Indians Diabetes - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/xgboost/xgboost_diabetes_dataset.ipynb)
 
 #### PyTorch
 
-* CIFAR-10 - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/pytorch/pytorch_cifar10_dataset.ipynb)
+- CIFAR-10 - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/pytorch/pytorch_cifar10_dataset.ipynb)
 
 #### Keras
 
-* Fashion MNIST - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/keras/keras_fashion_mnist_dataset.ipynb)
+- Fashion MNIST - [Notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/keras/keras_fashion_mnist_dataset.ipynb)
 
 ## License
 

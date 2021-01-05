@@ -1,4 +1,4 @@
-name: Tests
+name: Lint, Static Typing and Tests
 on: push
 jobs:
   tests:
