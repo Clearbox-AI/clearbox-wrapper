@@ -1,4 +1,5 @@
 import os
+import shutil
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -115,6 +116,9 @@ def save_model(
 
     if zip:
         zip_directory(path)
+
+    if os.path.exists("mlruns"):
+        shutil.rmtree("mlruns")
 
     return wrapped_model
 
