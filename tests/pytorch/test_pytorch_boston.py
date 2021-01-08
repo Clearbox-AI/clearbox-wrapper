@@ -153,6 +153,7 @@ def test_boston_pytorch_preprocessing(sk_transformer, boston_training_test, mode
         return torch.Tensor(x_transformed)
 
     model = BostonModel()
+    print(model.__class__)
     model.train()
     train(model, x_transformed, y_train)
 

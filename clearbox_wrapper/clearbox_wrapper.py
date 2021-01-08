@@ -67,7 +67,7 @@ def save_model(
             artifacts = {"keras_model": keras_model_path}
             wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
             wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
-    elif "torch" in str(model.__class__):
+    elif "forward" in dir(model):
         with TemporaryDirectory() as tmp_dir:
             pytorch_model_path = os.path.join(tmp_dir, "pytorch_model")
             mlflow.pytorch.save_model(model, pytorch_model_path)
