@@ -33,7 +33,7 @@ def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
 
         pip_deps.append("tensorflow=={}".format(tensorflow.__version__))
 
-    if "torch" in str(model.__class__):
+    if "forward" in dir(model):
         import torch
 
         pip_deps.append("torch=={}".format(torch.__version__))
