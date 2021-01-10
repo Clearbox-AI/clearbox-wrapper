@@ -11,7 +11,9 @@ from mlflow.utils.environment import _mlflow_conda_env
 import numpy as np
 import pandas as pd
 
-from .utils import zip_directory
+from .utils import get_super_classes_names, zip_directory
+
+SUPPORTED_FRAMEWORKS = ["sklearn", "xgboost", "keras", "pytorch"]
 
 
 def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
@@ -20,20 +22,22 @@ def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
     if additional_deps is not None:
         pip_deps += additional_deps
 
-    if "__getstate__" in dir(model) and "_sklearn_version" in model.__getstate__():
-        pip_deps.append(
-            "scikit-learn=={}".format(model.__getstate__()["_sklearn_version"])
-        )
-    if "xgb" in model.__class__.__name__.lower():
+    model_super_classes = get_super_classes_names(model)
+
+    # order of ifs matters
+    if any("xgboost" in super_class for super_class in model_super_classes):
         import xgboost
 
         pip_deps.append("xgboost=={}".format(xgboost.__version__))
-    if "keras" in str(model.__class__):
+    elif any("sklearn" in super_class for super_class in model_super_classes):
+        pip_deps.append(
+            "scikit-learn=={}".format(model.__getstate__()["_sklearn_version"])
+        )
+    elif any("keras" in super_class for super_class in model_super_classes):
         import tensorflow
 
         pip_deps.append("tensorflow=={}".format(tensorflow.__version__))
-
-    if "forward" in dir(model):
+    elif any("torch" in super_class for super_class in model_super_classes):
         import torch
 
         pip_deps.append("torch=={}".format(torch.__version__))
@@ -59,15 +63,16 @@ def save_model(
 ) -> "ClearboxWrapper":
 
     conda_env = _check_and_get_conda_env(model, additional_deps)
+    model_super_classes = get_super_classes_names(model)
 
-    if "keras" in str(model.__class__):
+    if any("keras" in super_class for super_class in model_super_classes):
         with TemporaryDirectory() as tmp_dir:
             keras_model_path = os.path.join(tmp_dir, "keras_model")
             mlflow.keras.save_model(model, keras_model_path)
             artifacts = {"keras_model": keras_model_path}
             wrapped_model = ClearboxWrapper(None, preprocessing, data_cleaning)
             wrapped_model.save(path, conda_env=conda_env, artifacts=artifacts)
-    elif "forward" in dir(model):
+    elif any("torch" in super_class for super_class in model_super_classes):
         with TemporaryDirectory() as tmp_dir:
             pytorch_model_path = os.path.join(tmp_dir, "pytorch_model")
             mlflow.pytorch.save_model(model, pytorch_model_path)
