@@ -11,7 +11,7 @@ import sklearn.preprocessing as sk_preprocessing
 import sklearn.svm as svm
 import sklearn.tree as tree
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture(scope="module")
@@ -164,6 +164,7 @@ def test_adult_sklearn_preprocessing(sklearn_model, adult_training, adult_test, 
 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
+    print(dir(cbw))
     cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, zip=False)
 
     loaded_model = cbw.load_model(tmp_model_path)

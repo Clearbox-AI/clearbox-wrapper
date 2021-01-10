@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import yaml
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture

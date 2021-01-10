@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import sklearn.preprocessing as sk_preprocessing
 import xgboost as xgb
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ import sklearn.preprocessing as sk_preprocessing
 import torch
 import torch.nn as nn
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 num_epochs = 20
 learning_rate = 0.0001

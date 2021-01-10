@@ -11,7 +11,7 @@ import sklearn.svm as svm
 import sklearn.tree as tree
 import yaml
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture(scope="module")

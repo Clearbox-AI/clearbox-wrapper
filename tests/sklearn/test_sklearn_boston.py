@@ -8,7 +8,7 @@ import sklearn.preprocessing as sk_preprocessing
 import sklearn.svm as svm
 import sklearn.tree as tree
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture(scope="module")

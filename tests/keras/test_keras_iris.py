@@ -9,7 +9,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.models import Sequential
 import yaml
 
-import clearbox_wrapper.clearbox_wrapper as cbw
+import clearbox_wrapper as cbw
 
 
 @pytest.fixture
