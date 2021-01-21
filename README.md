@@ -73,14 +73,14 @@ model.fit(X_train, y_train)
 cbw.save_model('wrapped_model_path', model)
 ```
 
-This is a simple extract from [this notebook](). Please see the following examples for a better understing about the usage.
+This is a simple extract from [this notebook](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/1_iris_sklearn/1_Clearbox_Wrapper_Iris_Scikit.ipynb). Please see the following examples for a better understing about the usage.
 
 ## Examples
 
-* [Scikit Learn Decision Tree on Iris Dataset] (No preprocessing, No data cleaning)
-* [XGBoost Model on Lending Club Loans Dataset] (Preprocessing, No data cleaning)
-* [Pytorch Network on Boston Housing Dataset] (Preprocessing, No data cleaning)
-* [Keras Network on UCI Adult Dataset] (Preprocessing and data cleaning)
+* [Scikit Learn Decision Tree on Iris Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/1_iris_sklearn/1_Clearbox_Wrapper_Iris_Scikit.ipynb) (No preprocessing, No data cleaning)
+* [XGBoost Model on Lending Club Loans Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/2_loans_preprocessing_xgboost/2_Clearbox_Wrapper_Loans_Xgboost.ipynb) (Preprocessing, No data cleaning)
+* [Pytorch Network on Boston Housing Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/3_boston_preprocessing_pytorch/3_Clearbox_Wrapper_Boston_Pytorch.ipynb) (Preprocessing, No data cleaning)
+* [Keras Network on UCI Adult Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/4_adult_data_cleaning_preprocessing_keras/4_Clearbox_Wrapper_Adult_Keras.ipynb) (Preprocessing and data cleaning)
 
 ## License
 
