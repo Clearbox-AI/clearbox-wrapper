@@ -43,20 +43,45 @@ It is not always clear which are the differences between pre-processing and data
 
 The pre-processing step, on the contrary, should be considered closely tied with the downstream ML model and adapted to its particular "needs". Typically processed data by this second step are only numeric and non necessarily understandable by a human.
 
+## Supported ML frameworks
 
+* Scikit-Learn
+* XGBoost
+* Keras
+* Pytorch
 ## Installation
 
 Install the latest relased version on the [Python Package Index (PyPI)](https://pypi.org/project/clearbox-wrapper/) with
 
-```
+```shell
 pip install clearbox-wrapper
 ```
 
-then you can import it with
+## Quickstart
 
-```
+You can import the Wrapper with
+
+```python
 import clearbox_wrapper as cbw
 ```
+
+The following lines show how to wrap and save a simple Scikit-Learn model without pre-processing or data cleaning:
+
+```python
+model = DecisionTreeClassifier(max_depth=4, random_state=42)
+model.fit(X_train, y_train)
+cbw.save_model('wrapped_model_path', model)
+```
+
+This is a simple extract from [this notebook](). Please see the following examples for a better understing about the usage.
+
+## Examples
+
+* [Scikit Learn Decision Tree on Iris Dataset] (No preprocessing, No data cleaning)
+* [XGBoost Model on Lending Club Loans Dataset] (Preprocessing, No data cleaning)
+* [Pytorch Network on Boston Housing Dataset] (Preprocessing, No data cleaning)
+* [Keras Network on UCI Adult Dataset] (Preprocessing and data cleaning)
+
 ## License
 
 [Apache License 2.0](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/LICENSE)
