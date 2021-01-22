@@ -8,7 +8,7 @@ Clearbox AI Wrapper is a Python library to package and save a Machine Learning m
 
 ## Main Features
 
-Clearbox AI Wrapper is largeky based on [MLFLow](https://github.com/mlflow/mlflow) and its [standard format](https://mlflow.org/docs/latest/models.html). It adds the possibility to package, together with the fitted model, pre-processing and data cleaning functions in order to create a production-ready pipeline able to receive new data, pre-process them and makes predictions. The resulting wrapped model/pipeline is saved as a zipped folder.
+Clearbox AI Wrapper is largely based on [MLFLow](https://github.com/mlflow/mlflow) and its [standard format](https://mlflow.org/docs/latest/models.html). It adds the possibility to package, together with the fitted model, pre-processing and data cleaning functions in order to create a production-ready pipeline able to receive new data, pre-process them and makes predictions. The resulting wrapped model/pipeline is saved as a zipped folder.
 
 Clearbox AI Wrapper detects automatically the model framework and its version and add it to the requirements saved into the final folder. Additional dependencies (e.g. libraries used in pre-processing or data cleaning) can also be added as a list parameter if necessary.
 
@@ -81,6 +81,7 @@ This is a simple extract from [this notebook](https://github.com/Clearbox-AI/cle
 * [XGBoost Model on Lending Club Loans Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/2_loans_preprocessing_xgboost/2_Clearbox_Wrapper_Loans_Xgboost.ipynb) (Preprocessing, No data cleaning)
 * [Pytorch Network on Boston Housing Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/3_boston_preprocessing_pytorch/3_Clearbox_Wrapper_Boston_Pytorch.ipynb) (Preprocessing, No data cleaning)
 * [Keras Network on UCI Adult Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/4_adult_data_cleaning_preprocessing_keras/4_Clearbox_Wrapper_Adult_Keras.ipynb) (Preprocessing and data cleaning)
+* [Pytorch Network on Diabetes Hospital Readmissions](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/5_hospital_preprocessing_pytorch/4_Clearbox_Wrapper_Hospital_Pytorch.ipynb) (Preprocessing and data cleaning)
 
 ## License
 
