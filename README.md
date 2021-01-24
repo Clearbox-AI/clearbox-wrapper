@@ -4,17 +4,17 @@
 
 # Clearbox AI Wrapper
 
-Clearbox AI Wrapper is a Python library to package and save a Machine Learning model built with common ML/DL frameworks on tabular data along with optional pre-processing and data cleaning functions as a single ready-to-production pipeline.
+Clearbox AI Wrapper is a Python library to package and save a Machine Learning model built with common ML/DL frameworks. It is designed to wrap models trained on strutured data. It includes optional pre-processing and data cleaning functions which can be used to build ready-to-production pipelines.
 
 ## Main Features
 
-Clearbox AI Wrapper is largeky based on [MLFLow](https://github.com/mlflow/mlflow) and its [standard format](https://mlflow.org/docs/latest/models.html). It adds the possibility to package, together with the fitted model, pre-processing and data cleaning functions in order to create a production-ready pipeline able to receive new data, pre-process them and makes predictions. The resulting wrapped model/pipeline is saved as a zipped folder.
+The wrapper is largely based on [MLFLow](https://github.com/mlflow/mlflow) and its [standard format](https://mlflow.org/docs/latest/models.html). It adds the possibility to package, together with the fitted model, pre-processing and data cleaning functions in order to create a production-ready pipeline able to receive new data, pre-process them and makes predictions. The resulting wrapped model/pipeline is saved as a zipped folder.
 
-Clearbox AI Wrapper detects automatically the model framework and its version and add it to the requirements saved into the final folder. Additional dependencies (e.g. libraries used in pre-processing or data cleaning) can also be added as a list parameter if necessary.
+The library is designed to automatically detect the model framework and its version adding this information to the requirements saved into the final folder. Additional dependencies (e.g. libraries used in pre-processing or data cleaning) can also be added as a list parameter if necessary.
 
 The resulting wrapped folder can be loaded via the Wrapper and the model will be ready to take input through the `predict` methods. The optional pre-processing and data cleaning functions, if present, can be loaded as separate functions as well.
 
-**IMPORTANT**: The `predict` method of the wrapped model  tries always to predict probabilities if the method required to is available in the saved model. It will look for the `predict_proba` method  of the original model, and if it's not there (e.g. regression or model that output probabilities by default), it will use `predict`.
+**IMPORTANT**: The `predict` method of the wrapped model outputs class probabilities (if the corresponding method is present in the original model). If a `predict_proba` method is not present in the wrapped model (e.g. regression problems or models that output probabilities by default), the wrapper will use the `predict` method instead.
 
 ## Pre-processing
 
