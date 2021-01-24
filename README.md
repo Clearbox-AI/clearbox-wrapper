@@ -14,7 +14,7 @@ The library is designed to automatically detect the model framework and its vers
 
 The resulting wrapped folder can be loaded via the Wrapper and the model will be ready to take input through the `predict` methods. The optional pre-processing and data cleaning functions, if present, can be loaded as separate functions as well.
 
-**IMPORTANT**: The `predict` method of the wrapped model outputs class probabilities (if the corresponding method is present in the original model). If a `predict_proba` method is not present in the wrapped model (e.g. regression problems or models that output probabilities by default), the wrapper will use the `predict` method instead.
+**IMPORTANT**: The `predict` method of the wrapped model outputs class probabilities by default (if the corresponding method is present in the original model). If a `predict_proba` method is not present in the wrapped model (e.g. regression problems or models that output probabilities by default), the wrapper will use the `predict` method instead.
 
 ## Pre-processing
 
