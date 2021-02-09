@@ -16,6 +16,10 @@ channels:
 """
 
 
+def get_major_minor_py_version(py_version):
+    return ".".join(py_version.split(".")[:2])
+
+
 def _conda_env(
     path=None,
     additional_conda_deps=None,

@@ -5,11 +5,11 @@ from loguru import logger
 import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
-from clearbox_wrapper.model.model import MLMODEL_FILE_NAME, Model
-from clearbox_wrapper.pyfunc import pyfunc
+from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
+from clearbox_wrapper.pyfunc import add_to_model
 from clearbox_wrapper.signature.signature import ModelSignature
 from clearbox_wrapper.utils.environment import _conda_env
-from clearbox_wrapper.utils.model import _get_flavor_configuration
+from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
 
 
 FLAVOR_NAME = "sklearn"
@@ -42,7 +42,6 @@ def save_model(
     sk_model,
     path,
     conda_env=None,
-    mlflow_model=None,
     serialization_format=SERIALIZATION_FORMAT_CLOUDPICKLE,
     signature: ModelSignature = None,
 ):
@@ -69,7 +68,6 @@ def save_model(
                                 'scikit-learn=0.19.2'
                             ]
                         }
-    :param mlflow_model: :py:mod:`mlflow.models.Model` this flavor is being added to.
     :param serialization_format: The format in which to serialize the model. This should be one
                                 of the formats listed in
                                  ``mlflow.sklearn.SUPPORTED_SERIALIZATION_FORMATS``. The
@@ -94,48 +92,36 @@ def save_model(
                           feed the model. The given example will be converted to a Pandas
                           DataFrame and then serialized to json using the Pandas split-oriented
                           format. Bytes are base64-encoded.
-    .. code-block:: python
-        :caption: Example
-        import mlflow.sklearn
-        from sklearn.datasets import load_iris
-        from sklearn import tree
-        iris = load_iris()
-        sk_model = tree.DecisionTreeClassifier()
-        sk_model = sk_model.fit(iris.data, iris.target)
-        # Save the model in cloudpickle format
-        # set path to location for persistence
-        sk_path_dir_1 = ...
-        mlflow.sklearn.save_model(
-                sk_model, sk_path_dir_1,
-                serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
-        # save the model in pickle format
-        # set path to location for persistence
-        sk_path_dir_2 = ...
-        mlflow.sklearn.save_model(sk_model, sk_path_dir_2,
-                                serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_PICKLE)
     """
+    logger.debug(
+        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
+        " conda_env={2}, serialization_format={3}, signature={4}".format(
+            sk_model, path, conda_env, serialization_format, signature
+        )
+    )
     import sklearn
 
     if serialization_format not in SUPPORTED_SERIALIZATION_FORMATS:
         raise ClearboxWrapperException(
-            message=(
-                "Unrecognized serialization format: {serialization_format}. Please specify one"
-                " of the following supported formats: {supported_formats}.".format(
-                    serialization_format=serialization_format,
-                    supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
-                )
+            "Unrecognized serialization format: {serialization_format}. Please specify one"
+            " of the following supported formats: {supported_formats}.".format(
+                serialization_format=serialization_format,
+                supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
             )
         )
 
     if os.path.exists(path):
-        raise ClearboxWrapperException(
-            message="Model path '{}' already exists".format(path)
-        )
+        raise ClearboxWrapperException("Model path '{}' already exists".format(path))
     os.makedirs(path)
-    if mlflow_model is None:
-        mlflow_model = Model()
+
+    wrapped_model = Model()
+
     if signature is not None:
-        mlflow_model.signature = signature
+        wrapped_model.signature = signature
+
+    logger.debug(
+        "Ho creato un nuovo wrapped_model con Model(): {}".format(wrapped_model)
+    )
 
     model_data_subpath = "model.pkl"
     _save_model(
@@ -157,19 +143,19 @@ def save_model(
 
     # `PyFuncModel` only works for sklearn models that define `predict()`.
     if hasattr(sk_model, "predict"):
-        pyfunc.add_to_model(
-            mlflow_model,
-            loader_module="mlflow.sklearn",
+        add_to_model(
+            wrapped_model,
+            loader_module="clearbox_wrapper.slearn.sklearn",
             model_path=model_data_subpath,
             env=conda_env_subpath,
         )
-    mlflow_model.add_flavor(
+    wrapped_model.add_flavor(
         FLAVOR_NAME,
         pickled_model=model_data_subpath,
         sklearn_version=sklearn.__version__,
         serialization_format=serialization_format,
     )
-    mlflow_model.save(os.path.join(path, MLMODEL_FILE_NAME))
+    wrapped_model.save(os.path.join(path, MLMODEL_FILE_NAME))
 
 
 def _save_model(sk_model, output_path, serialization_format):
@@ -189,7 +175,7 @@ def _save_model(sk_model, output_path, serialization_format):
             cloudpickle.dump(sk_model, out)
         else:
             raise ClearboxWrapperException(
-                message="Unrecognized serialization format: {serialization_format}".format(
+                "Unrecognized serialization format: {serialization_format}".format(
                     serialization_format=serialization_format
                 )
             )
@@ -205,12 +191,10 @@ def _load_model_from_local_file(path, serialization_format):
     # TODO: we could validate the scikit-learn version here
     if serialization_format not in SUPPORTED_SERIALIZATION_FORMATS:
         raise ClearboxWrapperException(
-            message=(
-                "Unrecognized serialization format: {serialization_format}. Please specify one"
-                " of the following supported formats: {supported_formats}.".format(
-                    serialization_format=serialization_format,
-                    supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
-                )
+            "Unrecognized serialization format: {serialization_format}. Please specify one"
+            " of the following supported formats: {supported_formats}.".format(
+                serialization_format=serialization_format,
+                supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
             )
         )
     with open(path, "rb") as f:
@@ -249,10 +233,13 @@ def _load_pyfunc(path):
         )
         serialization_format = SERIALIZATION_FORMAT_PICKLE
 
+    logger.debug("path: {}".format(path))
+    logger.debug("FLAVOR_NAME: {}".format(FLAVOR_NAME))
     pyfunc_flavor_conf = _get_flavor_configuration(
-        model_path=path, flavor_name=pyfunc.FLAVOR_NAME
+        model_path=path, flavor_name=FLAVOR_NAME
     )
-    path = os.path.join(path, pyfunc_flavor_conf["model_path"])
+    logger.debug("pyfunc_flavor_conf: {}".format(pyfunc_flavor_conf))
+    path = os.path.join(path, pyfunc_flavor_conf["pickled_model"])
 
     return _load_model_from_local_file(
         path=path, serialization_format=serialization_format

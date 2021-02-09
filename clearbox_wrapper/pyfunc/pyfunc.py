@@ -1,54 +1,39 @@
-from copy import deepcopy
+import importlib
+import os
+import sys
 from typing import Any, Dict, List, Union
 
+from loguru import logger
 import numpy as np
 import pandas as pd
 import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
-from clearbox_wrapper.model.model import Model
+from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
+from clearbox_wrapper.pyfunc import (
+    add_to_model,
+    CODE,
+    DATA,
+    FLAVOR_NAME,
+    MAIN,
+    PY_VERSION,
+)
+from clearbox_wrapper.pyfunc.model import (
+    _save_model_with_class_artifacts_params,
+    get_default_conda_env,
+)
 from clearbox_wrapper.signature.schema import DataType, Schema
-from clearbox_wrapper.utils.environment import PYTHON_VERSION
+from clearbox_wrapper.signature.signature import ModelSignature
+from clearbox_wrapper.utils.environment import (
+    get_major_minor_py_version,
+    PYTHON_VERSION,
+)
+from clearbox_wrapper.utils.file_utils import _copy_file_or_tree
 
-
-FLAVOR_NAME = "python_function"
-MAIN = "loader_module"
-CODE = "code"
-DATA = "data"
-ENV = "env"
-PY_VERSION = "python_version"
 
 PyFuncInput = Union[pd.DataFrame, np.ndarray, List[Any], Dict[str, Any]]
 PyFuncOutput = Union[pd.DataFrame, pd.Series, np.ndarray, list]
-
-
-def add_to_model(model, loader_module, data=None, code=None, env=None, **kwargs):
-    """
-    Add a ``pyfunc`` spec to the model configuration.
-    Defines ``pyfunc`` configuration schema. Caller can use this to create a valid ``pyfunc``
-    model flavor out of an existing directory structure. For example, other model flavors can
-    use this to specify how to use their output as a ``pyfunc``.
-    NOTE:
-        All paths are relative to the exported model root directory.
-    :param model: Existing model.
-    :param loader_module: The module to be used to load the model.
-    :param data: Path to the model data.
-    :param code: Path to the code dependencies.
-    :param env: Conda environment.
-    :param kwargs: Additional key-value pairs to include in the ``pyfunc`` flavor specification.
-                   Values must be YAML-serializable.
-    :return: Updated model configuration.
-    """
-    parms = deepcopy(kwargs)
-    parms[MAIN] = loader_module
-    parms[PY_VERSION] = PYTHON_VERSION
-    if code:
-        parms[CODE] = code
-    if data:
-        parms[DATA] = data
-    if env:
-        parms[ENV] = env
-    return model.add_flavor(FLAVOR_NAME, **parms)
+new_model = Model()
 
 
 def _enforce_type(name, values: pd.Series, t: DataType):
@@ -264,3 +249,315 @@ class PyFuncModel(object):
         return yaml.safe_dump(
             {"mlflow.pyfunc.loaded_model": info}, default_flow_style=False
         )
+
+
+def load_model(model_path: str, suppress_warnings: bool = True) -> PyFuncModel:
+    """
+    Load a model stored in Python function format.
+    :param model_uri: The location, in URI format, of the MLflow model. For example:
+                      - ``/Users/me/path/to/local/model``
+                      - ``relative/path/to/local/model``
+                      - ``s3://my_bucket/path/to/model``
+                      - ``runs:/<mlflow_run_id>/run-relative/path/to/model``
+                      - ``models:/<model_name>/<model_version>``
+                      - ``models:/<model_name>/<stage>``
+                      For more information about supported URI schemes, see
+                      `Referencing Artifacts <https://www.mlflow.org/docs/latest/concepts.html#
+                      artifact-locations>`_.
+    :param suppress_warnings: If ``True``, non-fatal warning messages associated with the model
+                              loading process will be suppressed. If ``False``, these warning
+                              messages will be emitted.
+    """
+    model_meta = Model.load(os.path.join(model_path, MLMODEL_FILE_NAME))
+
+    conf = model_meta.flavors.get(FLAVOR_NAME)
+    if conf is None:
+        raise ClearboxWrapperException(
+            'Model does not have the "{flavor_name}" flavor'.format(
+                flavor_name=FLAVOR_NAME
+            )
+        )
+    model_py_version = conf.get(PY_VERSION)
+    if not suppress_warnings:
+        _warn_potentially_incompatible_py_version_if_necessary(
+            model_py_version=model_py_version
+        )
+    if CODE in conf and conf[CODE]:
+        code_path = os.path.join(model_path, conf[CODE])
+        _add_code_to_system_path(code_path=code_path)
+    data_path = os.path.join(model_path, conf[DATA]) if (DATA in conf) else model_path
+    logger.debug("conf: {}".format(conf))
+    logger.debug("MAIN: {}".format(MAIN))
+    model_impl = importlib.import_module(conf[MAIN])._load_pyfunc(data_path)
+    return PyFuncModel(model_meta=model_meta, model_impl=model_impl)
+
+
+def _add_code_to_system_path(code_path):
+    sys.path = [code_path] + _get_code_dirs(code_path) + sys.path
+
+
+def _get_code_dirs(src_code_path, dst_code_path=None):
+    """
+    Obtains the names of the subdirectories contained under the specified source code
+    path and joins them with the specified destination code path.
+    :param src_code_path: The path of the source code directory for which to list
+                          subdirectories.
+    :param dst_code_path: The destination directory path to which subdirectory names should be
+                          joined.
+    """
+    if not dst_code_path:
+        dst_code_path = src_code_path
+    return [
+        (os.path.join(dst_code_path, x))
+        for x in os.listdir(src_code_path)
+        if os.path.isdir(x) and not x == "__pycache__"
+    ]
+
+
+def _warn_potentially_incompatible_py_version_if_necessary(model_py_version=None):
+    """
+    Compares the version of Python that was used to save a given model with the version
+    of Python that is currently running. If a major or minor version difference is detected,
+    logs an appropriate warning.
+    """
+    if model_py_version is None:
+        logger.warning(
+            "The specified model does not have a specified Python version. It may be"
+            " incompatible with the version of Python that is currently running: Python %s",
+            PYTHON_VERSION,
+        )
+    elif get_major_minor_py_version(model_py_version) != get_major_minor_py_version(
+        PYTHON_VERSION
+    ):
+        logger.warning(
+            "The version of Python that the model was saved in, `Python %s`, differs"
+            " from the version of Python that is currently running, `Python %s`,"
+            " and may be incompatible",
+            model_py_version,
+            PYTHON_VERSION,
+        )
+
+
+def save_model(
+    path,
+    loader_module=None,
+    data_path=None,
+    code_path=None,
+    conda_env=None,
+    mlflow_model=None,
+    python_model=None,
+    artifacts=None,
+    signature: ModelSignature = None,
+    **kwargs
+):
+    """
+    save_model(path, loader_module=None, data_path=None, code_path=None, conda_env=None,\
+               mlflow_model=Model(), python_model=None, artifacts=None)
+    Save a Pyfunc model with custom inference logic and optional data dependencies to a path on
+    the local filesystem.
+    For information about the workflows that this method supports, please see :ref:`"workflows
+    for creating custom pyfunc models" <pyfunc-create-custom-workflows>` and
+    :ref:`"which workflow is right for my use case?" <pyfunc-create-custom-selecting-workflow>`.
+    Note that the parameters for the second workflow: ``loader_module``, ``data_path`` and the
+    parameters for the first workflow: ``python_model``, ``artifacts``, cannot be
+    specified together.
+    :param path: The path to which to save the Python model.
+    :param loader_module: The name of the Python module that is used to load the model
+                          from ``data_path``. This module must define a method with the
+                          prototype ``_load_pyfunc(data_path)``. If not ``None``,
+                          this module and its dependencies must be included in one of
+                          the following locations:
+                          - The MLflow library.
+                          - Package(s) listed in the model's Conda environment, specified by
+                            the ``conda_env`` parameter.
+                          - One or more of the files specified by the ``code_path`` parameter.
+    :param data_path: Path to a file or directory containing model data.
+    :param code_path: A list of local filesystem paths to Python file dependencies (or
+                      directories containing file dependencies). These files are *prepended* to
+                      the system path before the model is loaded.
+    :param conda_env: Either a dictionary representation of a Conda environment or the path to a
+                      Conda environment yaml file. This decsribes the environment this model
+                      should be run in. If ``python_model`` is not ``None``, the Conda
+                      environment must at least specify the dependencies contained in
+                      :func:`get_default_conda_env()`. If ``None``, the default
+                      :func:`get_default_conda_env()` environment is added to the
+                      model. The following is an *example* dictionary representation of a Conda
+                      environment::
+                        {
+                            'name': 'mlflow-env',
+                            'channels': ['defaults'],
+                            'dependencies': [
+                                'python=3.7.0',
+                                'cloudpickle==0.5.8'
+                            ]
+                        }
+    :param mlflow_model: :py:mod:`mlflow.models.Model` configuration to which to add the
+                         **python_function** flavor.
+    :param python_model: An instance of a subclass of :class:`~PythonModel`. This class is
+                         serialized using the CloudPickle library. Any dependencies of the class
+                         should be included in one of the following locations:
+                            - The MLflow library.
+                            - Package(s) listed in the model's Conda environment, specified by
+                              the ``conda_env`` parameter.
+                            - One or more of the files specified by the ``code_path`` parameter.
+                         Note: If the class is imported from another module, as opposed to being
+                         defined in the ``__main__`` scope, the defining module should also be
+                         included in one of the listed locations.
+    :param artifacts: A dictionary containing ``<name, artifact_uri>`` entries. Remote artifact
+                      URIs are resolved to absolute filesystem paths, producing a dictionary of
+                      ``<name, absolute_path>`` entries. ``python_model`` can reference these
+                      resolved entries as the ``artifacts`` property of the ``context``
+                      parameter in :func:`PythonModel.load_context()
+                      <mlflow.pyfunc.PythonModel.load_context>`
+                      and :func:`PythonModel.predict() <mlflow.pyfunc.PythonModel.predict>`.
+                      For example, consider the following ``artifacts`` dictionary::
+                        {
+                            "my_file": "s3://my-bucket/path/to/my/file"
+                        }
+                      In this case, the ``"my_file"`` artifact is downloaded from S3. The
+                      ``python_model`` can then refer to ``"my_file"`` as an absolute filesystem
+                      path via ``context.artifacts["my_file"]``.
+                      If ``None``, no artifacts are added to the model.
+    :param signature: (Experimental) :py:class:`ModelSignature <mlflow.models.ModelSignature>`
+                      describes model input and output :py:class:`Schema <mlflow.types.Schema>`.
+                      The model signature can be :py:func:`inferred
+                      <mlflow.models.infer_signature>` from datasets with valid model input
+                      (e.g. the training dataset with target column omitted) and valid model
+                      output (e.g. model predictions generated on the training dataset),
+                      for example:
+                      .. code-block:: python
+                        from mlflow.models.signature import infer_signature
+                        train = df.drop_column("target_label")
+                        predictions = ... # compute model predictions
+                        signature = infer_signature(train, predictions)
+    :param input_example: (Experimental) Input example provides one or several instances of
+                          valid model input. The example can be used as a hint of what data to
+                          feed the model. The given example will be converted to a Pandas
+                          DataFrame and then serialized to json using the Pandas split-oriented
+                          format. Bytes are base64-encoded.
+    """
+    mlflow_model = kwargs.pop("model", mlflow_model)
+    if len(kwargs) > 0:
+        raise TypeError(
+            "save_model() got unexpected keyword arguments: {}".format(kwargs)
+        )
+    if code_path is not None:
+        if not isinstance(code_path, list):
+            raise TypeError(
+                "Argument code_path should be a list, not {}".format(type(code_path))
+            )
+
+    first_argument_set = {
+        "loader_module": loader_module,
+        "data_path": data_path,
+    }
+    second_argument_set = {
+        "artifacts": artifacts,
+        "python_model": python_model,
+    }
+    first_argument_set_specified = any(
+        [item is not None for item in first_argument_set.values()]
+    )
+    second_argument_set_specified = any(
+        [item is not None for item in second_argument_set.values()]
+    )
+    if first_argument_set_specified and second_argument_set_specified:
+        raise ClearboxWrapperException(
+            "The following sets of parameters cannot be specified together: {first_set_keys}"
+            " and {second_set_keys}. All parameters in one set must be `None`. Instead, found"
+            " the following values: {first_set_entries} and {second_set_entries}".format(
+                first_set_keys=first_argument_set.keys(),
+                second_set_keys=second_argument_set.keys(),
+                first_set_entries=first_argument_set,
+                second_set_entries=second_argument_set,
+            )
+        )
+    elif (loader_module is None) and (python_model is None):
+        msg = (
+            "Either `loader_module` or `python_model` must be specified. A `loader_module` "
+            "should be a python module. A `python_model` should be a subclass of PythonModel"
+        )
+        raise ClearboxWrapperException(msg)
+
+    if os.path.exists(path):
+        raise ClearboxWrapperException("Path '{}' already exists".format(path))
+    os.makedirs(path)
+    if mlflow_model is None:
+        mlflow_model = Model()
+    if signature is not None:
+        mlflow_model.signature = signature
+
+    if first_argument_set_specified:
+        return _save_model_with_loader_module_and_data_path(
+            path=path,
+            loader_module=loader_module,
+            data_path=data_path,
+            code_paths=code_path,
+            conda_env=conda_env,
+            mlflow_model=mlflow_model,
+        )
+    elif second_argument_set_specified:
+        return _save_model_with_class_artifacts_params(
+            path=path,
+            python_model=python_model,
+            artifacts=artifacts,
+            conda_env=conda_env,
+            code_paths=code_path,
+            mlflow_model=mlflow_model,
+        )
+
+
+def _save_model_with_loader_module_and_data_path(
+    path,
+    loader_module,
+    data_path=None,
+    code_paths=None,
+    conda_env=None,
+    mlflow_model=new_model,
+):
+    """
+    Export model as a generic Python function model.
+    :param path: The path to which to save the Python model.
+    :param loader_module: The name of the Python module that is used to load the model
+                          from ``data_path``. This module must define a method with the
+                          prototype ``_load_pyfunc(data_path)``.
+    :param data_path: Path to a file or directory containing model data.
+    :param code_paths: A list of local filesystem paths to Python file dependencies (or
+                      directories containing file dependencies). These files are *prepended*
+                      to the system path before the model is loaded.
+    :param conda_env: Either a dictionary representation of a Conda environment or the path to a
+                      Conda environment yaml file. If provided, this decsribes the environment
+                      this model should be run in.
+    :return: Model configuration containing model info.
+    """
+
+    code = None
+    data = None
+
+    if data_path is not None:
+        model_file = _copy_file_or_tree(src=data_path, dst=path, dst_dir="data")
+        data = model_file
+
+    if code_paths is not None:
+        for code_path in code_paths:
+            _copy_file_or_tree(src=code_path, dst=path, dst_dir="code")
+        code = "code"
+
+    conda_env_subpath = "mlflow_env.yml"
+    if conda_env is None:
+        conda_env = get_default_conda_env()
+    elif not isinstance(conda_env, dict):
+        with open(conda_env, "r") as f:
+            conda_env = yaml.safe_load(f)
+    with open(os.path.join(path, conda_env_subpath), "w") as f:
+        yaml.safe_dump(conda_env, stream=f, default_flow_style=False)
+
+    add_to_model(
+        mlflow_model,
+        loader_module=loader_module,
+        code=code,
+        data=data,
+        env=conda_env_subpath,
+    )
+    mlflow_model.save(os.path.join(path, MLMODEL_FILE_NAME))
+    return mlflow_model

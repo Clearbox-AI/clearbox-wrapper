@@ -1,0 +1,11 @@
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: clearbox_wrapper.slearn.sklearn
+    model_path: model.pkl
+    python_version: 3.8.5
+  sklearn:
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 0.23.2
+timestamp: '2021-02-09 10:48:30.766658'
