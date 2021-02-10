@@ -1,14 +1,15 @@
 import os
 import pickle
+from typing import Any, Dict, Optional, Union
 
 from loguru import logger
 import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
-from clearbox_wrapper.pyfunc import add_to_model
+from clearbox_wrapper.pyfunc import add_pyfunc_flavor_to_model
 from clearbox_wrapper.signature.signature import ModelSignature
-from clearbox_wrapper.utils.environment import _conda_env
+from clearbox_wrapper.utils.environment import _get_default_conda_env
 from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
 
 
@@ -23,10 +24,18 @@ SUPPORTED_SERIALIZATION_FORMATS = [
 ]
 
 
-def get_default_conda_env(include_cloudpickle=False):
-    """
-    :return: The default Conda environment for MLflow Models produced by calls to
-             :func:`save_model()` and :func:`log_model()`.
+def get_default_sklearn_conda_env(include_cloudpickle: bool = False) -> Dict:
+    """Generate the default Conda environment for Scikit-Learn models.
+
+    Parameters
+    ----------
+    include_cloudpickle : bool, optional
+        Whether to include cloudpickle as a environment dependency, by default False.
+
+    Returns
+    -------
+    Dict
+        The default Conda environment for Scikit-Learn models as a dictionary.
     """
     import sklearn
 
@@ -35,68 +44,72 @@ def get_default_conda_env(include_cloudpickle=False):
         import cloudpickle
 
         pip_deps += ["cloudpickle=={}".format(cloudpickle.__version__)]
-    return _conda_env(additional_pip_deps=pip_deps, additional_conda_channels=None)
+    return _get_default_conda_env(
+        additional_pip_deps=pip_deps, additional_conda_channels=None
+    )
 
 
-def save_model(
-    sk_model,
-    path,
-    conda_env=None,
-    serialization_format=SERIALIZATION_FORMAT_CLOUDPICKLE,
-    signature: ModelSignature = None,
+def save_sklearn_model(
+    sk_model: Any,
+    path: str,
+    conda_env: Optional[Union[str, Dict]] = None,
+    serialization_format: str = SERIALIZATION_FORMAT_CLOUDPICKLE,
+    signature: Optional[ModelSignature] = None,
 ):
-    """
-    Save a scikit-learn model to a path on the local file system. Produces an MLflow Model
-    containing the following flavors:
-        - :py:mod:`mlflow.sklearn`
-        - :py:mod:`mlflow.pyfunc`. NOTE: This flavor is only included for scikit-learn models
-          that define `predict()`, since `predict()` is required for pyfunc model inference.
-    :param sk_model: scikit-learn model to be saved.
-    :param path: Local path where the model is to be saved.
-    :param conda_env: Either a dictionary representation of a Conda environment or the path to a
-                      Conda environment yaml file. If provided, this decsribes the environment
-                      this model should be run in. At minimum, it should specify the
-                      dependencies contained in :func:`get_default_conda_env()`. If `None`,
-                      the default :func:`get_default_conda_env()` environment is added to the
-                      model. The following is an *example* dictionary representation of a Conda
-                      environment::
-                        {
-                            'name': 'mlflow-env',
-                            'channels': ['defaults'],
-                            'dependencies': [
-                                'python=3.7.0',
-                                'scikit-learn=0.19.2'
-                            ]
-                        }
-    :param serialization_format: The format in which to serialize the model. This should be one
-                                of the formats listed in
-                                 ``mlflow.sklearn.SUPPORTED_SERIALIZATION_FORMATS``. The
-                                 Cloudpickle format,
-                                 ``mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE``,
-                                 provides better cross-system compatibility by identifying and
-                                 packaging code dependencies with the serialized model.
-    :param signature: (Experimental) :py:class:`ModelSignature <mlflow.models.ModelSignature>`
-                      describes model input and output :py:class:`Schema <mlflow.types.Schema>`.
-                      The model signature can be
-                      :py:func:`inferred <mlflow.models.infer_signature>`
-                      from datasets with valid model input (e.g. the training dataset with
-                      target column omitted) and valid model output (e.g. model predictions
-                      generated on the training dataset), for example:
-                      .. code-block:: python
-                        from mlflow.models.signature import infer_signature
-                        train = df.drop_column("target_label")
-                        predictions = ... # compute model predictions
-                        signature = infer_signature(train, predictions)
-    :param input_example: (Experimental) Input example provides one or several instances of
-                          valid model input. The example can be used as a hint of what data to
-                          feed the model. The given example will be converted to a Pandas
-                          DataFrame and then serialized to json using the Pandas split-oriented
-                          format. Bytes are base64-encoded.
+    """Save a Scikit-Learn model. Produces an MLflow Model containing the following flavors:
+        * wrapper.sklearn
+        * wrapper.pyfunc. NOTE: This flavor is only included for scikit-learn models
+          that define at least `predict()`, since `predict()` is required for pyfunc model
+          inference.
+
+    Parameters
+    ----------
+    sk_model : Any
+        A Scikit-Learn model to be saved.
+    path : str
+        Local path to save the model to.
+    conda_env : Optional[Union[str, Dict]], optional
+        A dictionary representation of a Conda environment or the path to a Conda environment
+        YAML file, by default None. This decsribes the environment this model should be run in.
+        If None, the default Conda environment will be added to the model. Example of a
+        dictionary representation of a Conda environment:
+        {
+            'name': 'conda-env',
+            'channels': ['defaults'],
+            'dependencies': [
+                'python=3.7.0',
+                'scikit-learn=0.19.2'
+            ]
+        }
+    serialization_format : str, optional
+        The format in which to serialize the model. This should be one of the formats listed in
+        SUPPORTED_SERIALIZATION_FORMATS. Cloudpickle format, SERIALIZATION_FORMAT_CLOUDPICKLE,
+        provides better cross-system compatibility by identifying and packaging code
+        dependencies with the serialized model, by default SERIALIZATION_FORMAT_CLOUDPICKLE
+    signature : Optional[ModelSignature], optional
+        A model signature describes model input schema. It can be inferred from datasets with
+        valid model type (e.g. the training dataset with target column omitted), by default None
+
+    Raises
+    ------
+    ClearboxWrapperException
+        If unrecognized serialization format or model path already exists.
     """
     logger.debug(
         "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
         " conda_env={2}, serialization_format={3}, signature={4}".format(
             sk_model, path, conda_env, serialization_format, signature
+        )
+    )
+
+    logger.debug(
+        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
+        " conda_env={2}, serialization_format={3}, signature={4}".format(
+            type(sk_model),
+            type(path),
+            type(conda_env),
+            type(serialization_format),
+            type(signature),
         )
     )
     import sklearn
@@ -109,22 +122,36 @@ def save_model(
                 supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
             )
         )
-
     if os.path.exists(path):
         raise ClearboxWrapperException("Model path '{}' already exists".format(path))
-    os.makedirs(path)
 
+    os.makedirs(path)
     wrapped_model = Model()
+
+    logger.debug(
+        "Sono save_model di sklearn, ho creato un nuovo Model: __str__()={0}, to_dict()={1},"
+        " to_yaml()={2}, to_json={3}, model={4}".format(
+            wrapped_model.__str__(),
+            wrapped_model.to_dict(),
+            wrapped_model.to_yaml(),
+            wrapped_model.to_json(),
+            wrapped_model,
+        )
+    )
 
     if signature is not None:
         wrapped_model.signature = signature
 
-    logger.debug(
-        "Ho creato un nuovo wrapped_model con Model(): {}".format(wrapped_model)
-    )
-
     model_data_subpath = "model.pkl"
-    _save_model(
+
+    logger.debug(
+        "Sono save_model di sklearn, sto per chiamare _save_model coi seguenti parametri:"
+        " sk_model={0}, output_path={1},"
+        " serialization_format={2}".format(
+            sk_model, os.path.join(path, model_data_subpath), serialization_format
+        )
+    )
+    _serialize_and_save_model(
         sk_model=sk_model,
         output_path=os.path.join(path, model_data_subpath),
         serialization_format=serialization_format,
@@ -132,40 +159,73 @@ def save_model(
 
     conda_env_subpath = "conda.yaml"
     if conda_env is None:
-        conda_env = get_default_conda_env(
+        conda_env = get_default_sklearn_conda_env(
             include_cloudpickle=serialization_format == SERIALIZATION_FORMAT_CLOUDPICKLE
         )
     elif not isinstance(conda_env, dict):
         with open(conda_env, "r") as f:
             conda_env = yaml.safe_load(f)
+    logger.debug(
+        "conda_env type: {0}, conda_env: {1}".format(type(conda_env), conda_env)
+    )
     with open(os.path.join(path, conda_env_subpath), "w") as f:
         yaml.safe_dump(conda_env, stream=f, default_flow_style=False)
 
     # `PyFuncModel` only works for sklearn models that define `predict()`.
     if hasattr(sk_model, "predict"):
-        add_to_model(
+        logger.debug(
+            "Sono save_model di sklearn, sto per chiamare att_to_model coi seguenti parametri:"
+            " wrapped_model={0}, loader_module={1},"
+            " model_path={2}, env={3}".format(
+                wrapped_model,
+                "clearbox_wrapper.slearn.sklearn",
+                model_data_subpath,
+                conda_env_subpath,
+            )
+        )
+        add_pyfunc_flavor_to_model(
             wrapped_model,
             loader_module="clearbox_wrapper.slearn.sklearn",
             model_path=model_data_subpath,
             env=conda_env_subpath,
         )
+
+    logger.debug("Wrapped model after add_to_model: {}".format(wrapped_model))
+
     wrapped_model.add_flavor(
         FLAVOR_NAME,
         pickled_model=model_data_subpath,
         sklearn_version=sklearn.__version__,
         serialization_format=serialization_format,
     )
+
+    logger.debug("Wrapped model after second add_to_model: {}".format(wrapped_model))
+
     wrapped_model.save(os.path.join(path, MLMODEL_FILE_NAME))
 
 
-def _save_model(sk_model, output_path, serialization_format):
+def _serialize_and_save_model(
+    sk_model: Any, output_path: str, serialization_format: str
+) -> None:
+    """Serialize and save a Scikit-Learn model to a local file.
+
+    Parameters
+    ----------
+    sk_model : Any
+        The Scikit-Learn model to serialize.
+    output_path : str
+        The file path to which to write the serialized model (.pkl).
+    serialization_format : str
+        The format in which to serialize the model. This should be one of the following:
+        SERIALIZATION_FORMAT_PICKLE or SERIALIZATION_FORMAT_CLOUDPICKLE.
+
+    Raises
+    ------
+    ClearboxWrapperException
+        Unrecognized serialization format.
     """
-    :param sk_model: The scikit-learn model to serialize.
-    :param output_path: The file path to which to write the serialized model.
-    :param serialization_format: The format in which to serialize the model. This should be
-                        one of the following: ``mlflow.sklearn.SERIALIZATION_FORMAT_PICKLE`` or
-                        ``mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE``.
-    """
+    logger.debug("Sono _save_model di sklearn, sto per salvare il modello in model.pkl")
+
     with open(output_path, "wb") as out:
         if serialization_format == SERIALIZATION_FORMAT_PICKLE:
             pickle.dump(sk_model, out)

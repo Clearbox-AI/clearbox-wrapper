@@ -17,7 +17,7 @@ class Model(object):
 
     def __init__(
         self,
-        timestamp: Optional[datetime.datetime] = None,
+        timestamp: Optional[datetime] = None,
         flavors: Optional[Dict] = None,
         signature: Optional[ModelSignature] = None,
     ) -> None:
@@ -25,7 +25,7 @@ class Model(object):
 
         Parameters
         ----------
-        timestamp : Optional[datetime.datetime], optional
+        timestamp : Optional[datetime], optional
             A timestamp of the model creation, by default None.
             If None, it will be use datetime.utcnow()
         flavors : Optional[Dict], optional

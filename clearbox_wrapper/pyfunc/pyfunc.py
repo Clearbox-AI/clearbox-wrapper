@@ -11,7 +11,7 @@ import yaml
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 from clearbox_wrapper.pyfunc import (
-    add_to_model,
+    add_pyfunc_flavor_to_model,
     CODE,
     DATA,
     FLAVOR_NAME,
@@ -552,7 +552,7 @@ def _save_model_with_loader_module_and_data_path(
     with open(os.path.join(path, conda_env_subpath), "w") as f:
         yaml.safe_dump(conda_env, stream=f, default_flow_style=False)
 
-    add_to_model(
+    add_pyfunc_flavor_to_model(
         mlflow_model,
         loader_module=loader_module,
         code=code,

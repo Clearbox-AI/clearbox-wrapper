@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+from loguru import logger
+
+from clearbox_wrapper.model import Model
 from clearbox_wrapper.utils.environment import PYTHON_VERSION
 
 FLAVOR_NAME = "python_function"
@@ -10,24 +13,44 @@ ENV = "env"
 PY_VERSION = "python_version"
 
 
-def add_to_model(model, loader_module, data=None, code=None, env=None, **kwargs):
-    """
-    Add a ``pyfunc`` spec to the model configuration.
-    Defines ``pyfunc`` configuration schema. Caller can use this to create a valid ``pyfunc``
-    model flavor out of an existing directory structure. For example, other model flavors can
-    use this to specify how to use their output as a ``pyfunc``.
-    NOTE:
-        All paths are relative to the exported model root directory.
-    :param model: Existing model.
-    :param loader_module: The module to be used to load the model.
-    :param data: Path to the model data.
-    :param code: Path to the code dependencies.
-    :param env: Conda environment.
-    :param kwargs: Additional key-value pairs to include in the ``pyfunc`` flavor specification.
-                   Values must be YAML-serializable.
-    :return: Updated model configuration.
+def add_pyfunc_flavor_to_model(
+    model: Model,
+    loader_module: str,
+    data: str = None,
+    code=None,
+    env: str = None,
+    **kwargs
+) -> Model:
+    """Add Pyfunc flavor to a model configuration. Caller can use this to create a valid
+    Pyfunc model flavor out of an existing directory structure. A Pyfunc flavor will be
+    added to the flavors list into the MLModel file:
+        flavors:
+            python_function:
+                env: ...
+                loader_module: ...
+                model_path: ...
+                python_version: ...
+
+    Parameters
+    ----------
+    model : Model
+        Existing model.
+    loader_module : str
+        The module to be used to load the model (e.g. clearbox_wrapper.sklearn)
+    data : str, optional
+        Path to the model data, by default None.
+    code : str, optional
+        Path to the code dependencies, by default None.
+    env : str, optional
+        Path to the Conda environment, by default None.
+
+    Returns
+    -------
+    Model
+        The Model with the new flavor added.
     """
     parms = deepcopy(kwargs)
+    logger.debug("add_pyfunc_flavor: {}".format(parms))
     parms[MAIN] = loader_module
     parms[PY_VERSION] = PYTHON_VERSION
     if code:
@@ -40,7 +63,7 @@ def add_to_model(model, loader_module, data=None, code=None, env=None, **kwargs)
 
 
 __all__ = [
-    add_to_model,
+    add_pyfunc_flavor_to_model,
     FLAVOR_NAME,
     MAIN,
     PY_VERSION,

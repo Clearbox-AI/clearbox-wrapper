@@ -10,8 +10,8 @@ import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
-from clearbox_wrapper.pyfunc import add_to_model, FLAVOR_NAME
-from clearbox_wrapper.utils.environment import _conda_env
+from clearbox_wrapper.pyfunc import add_pyfunc_flavor_to_model, FLAVOR_NAME
+from clearbox_wrapper.utils.environment import _get_default_conda_env
 from clearbox_wrapper.utils.file_utils import _copy_file_or_tree, TempDir
 from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
 
@@ -47,7 +47,7 @@ def get_default_conda_env():
              and :func:`log_model() <mlflow.pyfunc.log_model>` when a user-defined subclass of
              :class:`PythonModel` is provided.
     """
-    return _conda_env(
+    return _get_default_conda_env(
         additional_conda_deps=None,
         additional_pip_deps=["cloudpickle=={}".format(cloudpickle.__version__)],
         additional_conda_channels=None,
@@ -198,7 +198,7 @@ def _save_model_with_class_artifacts_params(
         for code_path in code_paths:
             _copy_file_or_tree(src=code_path, dst=path, dst_dir=saved_code_subpath)
 
-    add_to_model(
+    add_pyfunc_flavor_to_model(
         model=mlflow_model,
         loader_module=__name__,
         code=saved_code_subpath,
