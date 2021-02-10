@@ -11,7 +11,7 @@ def main():
     iris_train = pd.DataFrame(iris.data, columns=iris.feature_names)
     clf = RandomForestClassifier(max_depth=7, random_state=0)
     clf.fit(iris_train, iris.target)
-    clearbox_wrapper.slearn.sklearn.save_model(clf, "prova")
+    clearbox_wrapper.slearn.sklearn.save_sklearn_model(clf, "prova")
 
 
 def main_load():
@@ -24,4 +24,4 @@ def main_load():
 
 
 if __name__ == "__main__":
-    main()
+    main_load()

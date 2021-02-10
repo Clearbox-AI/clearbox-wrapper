@@ -1,40 +1,60 @@
 import inspect
 import os
 import shutil
-from typing import Any, List
+from typing import Any, Dict, List
 import zipfile
+
+from loguru import logger
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 
 
-def _get_flavor_configuration(model_path, flavor_name):
+def _get_flavor_configuration(model_path: str, flavor_name: str) -> Dict:
+    """Get the configuration for a specified flavor of a model.
+
+    Parameters
+    ----------
+    model_path : str
+        Path to the model directory.
+    flavor_name : str
+        Name of the flavor configuration to load.
+
+    Returns
+    -------
+    Dict
+        Flavor configuration as a dictionary.
+
+    Raises
+    ------
+    ClearboxWrapperException
+        If it couldn't find a MLmodel file or if the model doesn't contain
+        the specified flavor.
     """
-    Obtains the configuration for the specified flavor from the specified
-    MLflow model path. If the model does not contain the specified flavor,
-    an exception will be thrown.
-    :param model_path: The path to the root directory of the MLflow model for which to load
-                       the specified flavor configuration.
-    :param flavor_name: The name of the flavor configuration to load.
-    :return: The flavor configuration as a dictionary.
-    """
-    model_configuration_path = os.path.join(model_path, MLMODEL_FILE_NAME)
-    if not os.path.exists(model_configuration_path):
+    mlmodel_path = os.path.join(model_path, MLMODEL_FILE_NAME)
+    logger.debug(
+        "Sono _get_flavor_configuration, mlmodel_path: {}".format(mlmodel_path)
+    )
+    if not os.path.exists(mlmodel_path):
         raise ClearboxWrapperException(
-            'Could not find an "{model_file}" configuration file at "{model_path}"'.format(
-                model_file=MLMODEL_FILE_NAME, model_path=model_path
+            'Could not find an "{}" configuration file at "{}"'.format(
+                MLMODEL_FILE_NAME, model_path
             )
         )
 
-    model_conf = Model.load(model_configuration_path)
-    if flavor_name not in model_conf.flavors:
+    mlmodel = Model.load(mlmodel_path)
+
+    logger.debug("Sono _get_flavor_configuration, mlmodel: {}".format(mlmodel))
+
+    if flavor_name not in mlmodel.flavors:
         raise ClearboxWrapperException(
-            'Model does not have the "{flavor_name}" flavor'.format(
-                flavor_name=flavor_name
-            )
+            'Model does not have the "{}" flavor'.format(flavor_name)
         )
-    conf = model_conf.flavors[flavor_name]
-    return conf
+    flavor_configuration_dict = mlmodel.flavors[flavor_name]
+    logger.debug(
+        "Sono _get_flavor_configuration, conf: {}".format(flavor_configuration_dict)
+    )
+    return flavor_configuration_dict
 
 
 def get_super_classes_names(instance_or_class: Any) -> List[str]:

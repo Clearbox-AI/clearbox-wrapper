@@ -252,44 +252,86 @@ class PyFuncModel(object):
 
 
 def load_model(model_path: str, suppress_warnings: bool = True) -> PyFuncModel:
-    """
-    Load a model stored in Python function format.
-    :param model_uri: The location, in URI format, of the MLflow model. For example:
-                      - ``/Users/me/path/to/local/model``
-                      - ``relative/path/to/local/model``
-                      - ``s3://my_bucket/path/to/model``
-                      - ``runs:/<mlflow_run_id>/run-relative/path/to/model``
-                      - ``models:/<model_name>/<model_version>``
-                      - ``models:/<model_name>/<stage>``
-                      For more information about supported URI schemes, see
-                      `Referencing Artifacts <https://www.mlflow.org/docs/latest/concepts.html#
-                      artifact-locations>`_.
-    :param suppress_warnings: If ``True``, non-fatal warning messages associated with the model
-                              loading process will be suppressed. If ``False``, these warning
-                              messages will be emitted.
-    """
-    model_meta = Model.load(os.path.join(model_path, MLMODEL_FILE_NAME))
+    """Load a model that has python_function flavor.
 
-    conf = model_meta.flavors.get(FLAVOR_NAME)
-    if conf is None:
+    Parameters
+    ----------
+    model_path : str
+        Filepath of the model directory.
+    suppress_warnings : bool, optional
+        If Fatal, non-fatal warning messages associated with the model loading process
+        will be emitted, by default True
+
+    Returns
+    -------
+    PyFuncModel
+        A python_function model.
+
+    Raises
+    ------
+    ClearboxWrapperException
+        If the model does not have the python_function flavor.
+    """
+    logger.debug(
+        "Sono load_model, ho ricevuto: model_path={}, suppress_warning={}".format(
+            model_path, suppress_warnings
+        )
+    )
+
+    logger.debug(
+        "Sono load_model, sto per chiamare Model.load con questo parametro: {}".format(
+            os.path.join(model_path, MLMODEL_FILE_NAME)
+        )
+    )
+
+    mlmodel = Model.load(os.path.join(model_path, MLMODEL_FILE_NAME))
+
+    logger.debug("Sono load_model, ho caricato model_meta: {}".format(mlmodel))
+
+    pyfunc_flavor_configuration = mlmodel.flavors.get(FLAVOR_NAME)
+
+    logger.debug(
+        "Sono load_model, ecco pyfunc_flavor_configuration: {}".format(
+            pyfunc_flavor_configuration
+        )
+    )
+
+    if pyfunc_flavor_configuration is None:
         raise ClearboxWrapperException(
             'Model does not have the "{flavor_name}" flavor'.format(
                 flavor_name=FLAVOR_NAME
             )
         )
-    model_py_version = conf.get(PY_VERSION)
+
+    model_python_version = pyfunc_flavor_configuration.get(PY_VERSION)
+
     if not suppress_warnings:
         _warn_potentially_incompatible_py_version_if_necessary(
-            model_py_version=model_py_version
+            model_py_version=model_python_version
         )
-    if CODE in conf and conf[CODE]:
-        code_path = os.path.join(model_path, conf[CODE])
+
+    if CODE in pyfunc_flavor_configuration and pyfunc_flavor_configuration[CODE]:
+        code_path = os.path.join(model_path, pyfunc_flavor_configuration[CODE])
         _add_code_to_system_path(code_path=code_path)
-    data_path = os.path.join(model_path, conf[DATA]) if (DATA in conf) else model_path
-    logger.debug("conf: {}".format(conf))
-    logger.debug("MAIN: {}".format(MAIN))
-    model_impl = importlib.import_module(conf[MAIN])._load_pyfunc(data_path)
-    return PyFuncModel(model_meta=model_meta, model_impl=model_impl)
+
+    data_path = (
+        os.path.join(model_path, pyfunc_flavor_configuration[DATA])
+        if (DATA in pyfunc_flavor_configuration)
+        else model_path
+    )
+
+    logger.debug(
+        "Sono load_model, ecco pyfunc_flavor_configuration[MAIN]: {}".format(
+            pyfunc_flavor_configuration[MAIN]
+        )
+    )
+
+    model_impl = importlib.import_module(
+        pyfunc_flavor_configuration[MAIN]
+    )._load_pyfunc(data_path)
+
+    logger.debug("Sono load_model, ecco model_impl: {}".format(model_impl))
+    return PyFuncModel(model_meta=mlmodel, model_impl=model_impl)
 
 
 def _add_code_to_system_path(code_path):

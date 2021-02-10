@@ -5,7 +5,7 @@ flavors:
     model_path: model.pkl
     python_version: 3.8.5
   sklearn:
-    pickled_model: model.pkl
+    model_path: model.pkl
     serialization_format: cloudpickle
     sklearn_version: 0.23.2
-timestamp: '2021-02-10 16:04:26.766836'
+timestamp: '2021-02-10 21:09:12.638267'
