@@ -5,8 +5,8 @@ from typing import Dict, Optional
 
 import yaml
 
-from clearbox_wrapper.signature.schema import Schema
-from clearbox_wrapper.signature.signature import ModelSignature
+from clearbox_wrapper.schema.schema import Schema
+from clearbox_wrapper.signature.signature import Signature
 
 
 MLMODEL_FILE_NAME = "MLmodel"
@@ -19,7 +19,8 @@ class Model(object):
         self,
         timestamp: Optional[datetime] = None,
         flavors: Optional[Dict] = None,
-        signature: Optional[ModelSignature] = None,
+        preprocessing_signature: Optional[Signature] = None,
+        model_signature: Optional[Signature] = None,
     ) -> None:
         """Create a new Model object.
 
@@ -33,13 +34,14 @@ class Model(object):
             representing the framework the model was created with
             and/or downstream tools that can "understand" the model,
             by default None.
-        signature : Optional[ModelSignature], optional
-            Description of the model inputs as ModelSignature oject,
+        signature : Optional[Signature], optional
+            Description of the model inputs as Signature oject,
             by default None
         """
         self.timestamp = str(timestamp or datetime.utcnow())
         self.flavors = flavors if flavors is not None else {}
-        self.signature = signature
+        self.preprocessing_signature = preprocessing_signature
+        self.model_signature = model_signature
 
     def __eq__(self, other: "Model") -> bool:
         """Check if two models are equal.
@@ -58,7 +60,35 @@ class Model(object):
             return False
         return self.__dict__ == other.__dict__
 
-    def get_input_schema(self) -> Schema:
+    def get_preprocessing_input_schema(self) -> Optional[Schema]:
+        """Get the preprocessing inputs schema."
+
+        Returns
+        -------
+        Schema
+            Preprocessing inputs schema: specification of types and column names.
+        """
+        return (
+            self.preprocessing_signature.inputs
+            if self.preprocessing_signature is not None
+            else None
+        )
+
+    def get_preprocessing_output_schema(self) -> Optional[Schema]:
+        """Get the preprocessing outputs schema."
+
+        Returns
+        -------
+        Schema
+            Preprocessing outputs schema: specification of types and column names.
+        """
+        return (
+            self.preprocessing_signature.outputs
+            if self.preprocessing_signature is not None
+            else None
+        )
+
+    def get_model_input_schema(self) -> Optional[Schema]:
         """Get the model inputs schema."
 
         Returns
@@ -66,7 +96,19 @@ class Model(object):
         Schema
             Model inputs schema: specification of types and column names.
         """
-        return self.signature.inputs if self.signature is not None else None
+        return self.model_signature.inputs if self.model_signature is not None else None
+
+    def get_model_output_schema(self) -> Optional[Schema]:
+        """Get the model outputs schema."
+
+        Returns
+        -------
+        Schema
+            Model outputs schema: specification of types and column names.
+        """
+        return (
+            self.model_signature.outputs if self.model_signature is not None else None
+        )
 
     def add_flavor(self, name: str, **params) -> "Model":
         """Add an entry for how to serve the model in a given format.
@@ -80,28 +122,50 @@ class Model(object):
         return self
 
     @property
-    def signature(self) -> Optional[ModelSignature]:
+    def preprocessing_signature(self) -> Optional[Signature]:
+        """Get the preprocessing associated with the model.
+
+        Returns
+        -------
+        Optional[Preprocessing]
+            A Preprocessing instance.
+        """
+        return self._preprocessing_signature
+
+    @preprocessing_signature.setter
+    def preprocessing_signature(self, value: Signature) -> None:
+        """Set the preprocessing of the model
+
+        Parameters
+        ----------
+        value : Preprocessing
+            Preprocessing as a Preprocessing object.
+        """
+        self._preprocessing_signature = value
+
+    @property
+    def model_signature(self) -> Optional[Signature]:
         """Get the model signature.
 
         Returns
         -------
-        Optional[ModelSignature]
-            The model signature: it defines the schema of a model inputs.
-            Model inputs are described as a sequence of (optionally) named
+        Optional[Signature]
+            The model signature: it defines the schema of a model inputs and outputs.
+            Model inputs/outputs are described as a sequence of (optionally) named
             columns with type.
         """
-        return self._signature
+        return self._model_signature
 
-    @signature.setter
-    def signature(self, value: ModelSignature) -> None:
+    @model_signature.setter
+    def model_signature(self, value: Signature) -> None:
         """Set the model signature
 
         Parameters
         ----------
-        value : ModelSignature
-            Model signature as a ModelSignature object.
+        value : Signature
+            Model signature as a Signature object.
         """
-        self._signature = value
+        self._model_signature = value
 
     def to_dict(self) -> Dict:
         """Get the model attributes as a dictionary.
@@ -112,8 +176,12 @@ class Model(object):
             Model attributes as dict <attribute_name: attribute_value>
         """
         model_dict = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-        if self.signature is not None:
-            model_dict["signature"] = self.signature.to_dict()
+        if self.model_signature is not None:
+            model_dict["signature"] = self.model_signature.to_dict()
+        if self.preprocessing_signature is not None:
+            model_dict[
+                "preprocessing_signature"
+            ] = self.preprocessing_signature.to_dict()
         return model_dict
 
     def to_yaml(self, stream=None):
@@ -199,6 +267,16 @@ class Model(object):
 
         if "signature" in model_dict and isinstance(model_dict["signature"], dict):
             model_dict = model_dict.copy()
-            model_dict["signature"] = ModelSignature.from_dict(model_dict["signature"])
+            model_dict["model_signature"] = Signature.from_dict(model_dict["signature"])
+            del model_dict["signature"]
+
+        if "preprocessing_signature" in model_dict and isinstance(
+            model_dict["preprocessing_signature"], dict
+        ):
+            model_dict = model_dict.copy()
+            model_dict["preprocessing_signature"] = Signature.from_dict(
+                model_dict["preprocessing_signature"]
+            )
+        print(model_dict)
 
         return cls(**model_dict)

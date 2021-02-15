@@ -22,8 +22,8 @@ from clearbox_wrapper.pyfunc.model import (
     _save_model_with_class_artifacts_params,
     get_default_conda_env,
 )
-from clearbox_wrapper.signature.schema import DataType, Schema
-from clearbox_wrapper.signature.signature import ModelSignature
+from clearbox_wrapper.schema.schema import DataType, Schema
+from clearbox_wrapper.signature.signature import Signature
 from clearbox_wrapper.utils.environment import (
     get_major_minor_py_version,
     PYTHON_VERSION,
@@ -251,7 +251,7 @@ class PyFuncModel(object):
         )
 
 
-def load_model(model_path: str, suppress_warnings: bool = True) -> PyFuncModel:
+def load_model(model_path: str, suppress_warnings: bool = False) -> PyFuncModel:
     """Load a model that has python_function flavor.
 
     Parameters
@@ -326,12 +326,12 @@ def load_model(model_path: str, suppress_warnings: bool = True) -> PyFuncModel:
         )
     )
 
-    model_impl = importlib.import_module(
+    model_implementation = importlib.import_module(
         pyfunc_flavor_configuration[MAIN]
     )._load_pyfunc(data_path)
 
-    logger.debug("Sono load_model, ecco model_impl: {}".format(model_impl))
-    return PyFuncModel(model_meta=mlmodel, model_impl=model_impl)
+    logger.debug("Sono load_model, ecco model_impl: {}".format(model_implementation))
+    return PyFuncModel(model_meta=mlmodel, model_impl=model_implementation)
 
 
 def _add_code_to_system_path(code_path):
@@ -389,7 +389,7 @@ def save_model(
     mlflow_model=None,
     python_model=None,
     artifacts=None,
-    signature: ModelSignature = None,
+    signature: Signature = None,
     **kwargs
 ):
     """
@@ -460,7 +460,7 @@ def save_model(
                       ``python_model`` can then refer to ``"my_file"`` as an absolute filesystem
                       path via ``context.artifacts["my_file"]``.
                       If ``None``, no artifacts are added to the model.
-    :param signature: (Experimental) :py:class:`ModelSignature <mlflow.models.ModelSignature>`
+    :param signature: (Experimental) :py:class:`Signature <mlflow.models.Signature>`
                       describes model input and output :py:class:`Schema <mlflow.types.Schema>`.
                       The model signature can be :py:func:`inferred
                       <mlflow.models.infer_signature>` from datasets with valid model input

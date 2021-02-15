@@ -16,6 +16,7 @@ pandas = "^1"
 numpy = "^1.19.0"
 cloudpickle = "^1.6.0"
 PyYAML = "^5.4.1"
+dill = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

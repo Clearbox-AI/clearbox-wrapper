@@ -8,23 +8,29 @@ import yaml
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 import clearbox_wrapper.pyfunc as pyfunc
-from clearbox_wrapper.signature.signature import ModelSignature
+from clearbox_wrapper.signature.signature import Signature
 from clearbox_wrapper.utils.environment import _get_default_conda_env
 from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
+import clearbox_wrapper.wrapper as wrapper
+from clearbox_wrapper.wrapper import add_clearbox_flavor_to_model
 
 
 FLAVOR_NAME = "sklearn"
 
 SERIALIZATION_FORMAT_PICKLE = "pickle"
 SERIALIZATION_FORMAT_CLOUDPICKLE = "cloudpickle"
+SERIALIZATION_FORMAT_DILL = "dill"
 
 SUPPORTED_SERIALIZATION_FORMATS = [
     SERIALIZATION_FORMAT_PICKLE,
     SERIALIZATION_FORMAT_CLOUDPICKLE,
+    SERIALIZATION_FORMAT_DILL,
 ]
 
 
-def get_default_sklearn_conda_env(include_cloudpickle: bool = False) -> Dict:
+def get_default_sklearn_conda_env(
+    include_dill: bool = False, include_cloudpickle: bool = False
+) -> Dict:
     """Generate the default Conda environment for Scikit-Learn models.
 
     Parameters
@@ -40,6 +46,11 @@ def get_default_sklearn_conda_env(include_cloudpickle: bool = False) -> Dict:
     import sklearn
 
     pip_deps = ["scikit-learn=={}".format(sklearn.__version__)]
+
+    if include_dill:
+        import dill
+
+        pip_deps += ["dill=={}".format(dill.__version__)]
     if include_cloudpickle:
         import cloudpickle
 
@@ -53,8 +64,11 @@ def save_sklearn_model(
     sk_model: Any,
     path: str,
     conda_env: Optional[Union[str, Dict]] = None,
-    serialization_format: str = SERIALIZATION_FORMAT_CLOUDPICKLE,
-    signature: Optional[ModelSignature] = None,
+    mlmodel: Optional[Model] = None,
+    serialization_format: str = SERIALIZATION_FORMAT_DILL,
+    signature: Optional[Signature] = None,
+    add_clearbox_flavor: bool = False,
+    preprocessing_subpath: str = None,
 ):
     """Save a Scikit-Learn model. Produces an MLflow Model containing the following flavors:
         * wrapper.sklearn
@@ -85,8 +99,8 @@ def save_sklearn_model(
         The format in which to serialize the model. This should be one of the formats listed in
         SUPPORTED_SERIALIZATION_FORMATS. Cloudpickle format, SERIALIZATION_FORMAT_CLOUDPICKLE,
         provides better cross-system compatibility by identifying and packaging code
-        dependencies with the serialized model, by default SERIALIZATION_FORMAT_CLOUDPICKLE
-    signature : Optional[ModelSignature], optional
+        dependencies with the serialized model, by default SERIALIZATION_FORMAT_DILL
+    signature : Optional[Signature], optional
         A model signature describes model input schema. It can be inferred from datasets with
         valid model type (e.g. the training dataset with target column omitted), by default None
 
@@ -126,23 +140,28 @@ def save_sklearn_model(
         raise ClearboxWrapperException("Model path '{}' already exists".format(path))
 
     os.makedirs(path)
-    wrapped_model = Model()
+    if mlmodel is None:
+        mlmodel = Model()
 
     logger.debug(
         "Sono save_model di sklearn, ho creato un nuovo Model: __str__()={0}, to_dict()={1},"
         " to_yaml()={2}, to_json={3}, model={4}".format(
-            wrapped_model.__str__(),
-            wrapped_model.to_dict(),
-            wrapped_model.to_yaml(),
-            wrapped_model.to_json(),
-            wrapped_model,
+            mlmodel.__str__(),
+            mlmodel.to_dict(),
+            mlmodel.to_yaml(),
+            mlmodel.to_json(),
+            mlmodel,
         )
     )
 
     if signature is not None:
-        wrapped_model.signature = signature
+        mlmodel.signature = signature
 
-    model_data_subpath = "model.pkl"
+    model_data_subpath = (
+        "model.dill"
+        if serialization_format == SERIALIZATION_FORMAT_DILL
+        else "model.pkl"
+    )
 
     logger.debug(
         "Sono save_model di sklearn, sto per chiamare _save_model coi seguenti parametri:"
@@ -160,7 +179,9 @@ def save_sklearn_model(
     conda_env_subpath = "conda.yaml"
     if conda_env is None:
         conda_env = get_default_sklearn_conda_env(
-            include_cloudpickle=serialization_format == SERIALIZATION_FORMAT_CLOUDPICKLE
+            include_cloudpickle=serialization_format
+            == SERIALIZATION_FORMAT_CLOUDPICKLE,
+            include_dill=serialization_format == SERIALIZATION_FORMAT_DILL,
         )
     elif not isinstance(conda_env, dict):
         with open(conda_env, "r") as f:
@@ -177,31 +198,40 @@ def save_sklearn_model(
             "Sono save_model di sklearn, sto per chiamare att_to_model coi seguenti parametri:"
             " wrapped_model={0}, loader_module={1},"
             " model_path={2}, env={3}".format(
-                wrapped_model,
+                mlmodel,
                 "clearbox_wrapper.slearn.sklearn",
                 model_data_subpath,
                 conda_env_subpath,
             )
         )
         pyfunc.add_pyfunc_flavor_to_model(
-            wrapped_model,
+            mlmodel,
             loader_module="clearbox_wrapper.slearn.sklearn",
             model_path=model_data_subpath,
             env=conda_env_subpath,
         )
 
-    logger.debug("Wrapped model after add_to_model: {}".format(wrapped_model))
+    if add_clearbox_flavor:
+        add_clearbox_flavor_to_model(
+            mlmodel,
+            loader_module="clearbox_wrapper.slearn.sklearn",
+            model_path=model_data_subpath,
+            env=conda_env_subpath,
+            preprocessing=preprocessing_subpath,
+        )
 
-    wrapped_model.add_flavor(
+    logger.debug("Wrapped model after add_to_model: {}".format(mlmodel))
+
+    mlmodel.add_flavor(
         FLAVOR_NAME,
         model_path=model_data_subpath,
         sklearn_version=sklearn.__version__,
         serialization_format=serialization_format,
     )
 
-    logger.debug("Wrapped model after second add_to_model: {}".format(wrapped_model))
+    logger.debug("Wrapped model after second add_to_model: {}".format(mlmodel))
 
-    wrapped_model.save(os.path.join(path, MLMODEL_FILE_NAME))
+    mlmodel.save(os.path.join(path, MLMODEL_FILE_NAME))
 
 
 def _serialize_and_save_model(
@@ -224,7 +254,7 @@ def _serialize_and_save_model(
     ClearboxWrapperException
         Unrecognized serialization format.
     """
-    logger.debug("Sono _save_model di sklearn, sto per salvare il modello in model.pkl")
+    logger.debug("Sono _save_model di sklearn, sto per salvare il modello serializzato")
 
     with open(output_path, "wb") as out:
         if serialization_format == SERIALIZATION_FORMAT_PICKLE:
@@ -233,6 +263,10 @@ def _serialize_and_save_model(
             import cloudpickle
 
             cloudpickle.dump(sk_model, out)
+        elif serialization_format == SERIALIZATION_FORMAT_DILL:
+            import dill
+
+            dill.dump(sk_model, out)
         else:
             raise ClearboxWrapperException(
                 "Unrecognized serialization format: {serialization_format}".format(
@@ -275,7 +309,11 @@ def _load_serialized_model(
         )
     with open(serialized_model_path, "rb") as f:
         # Models serialized with Cloudpickle cannot necessarily be deserialized using Pickle;
-        if serialization_format == SERIALIZATION_FORMAT_PICKLE:
+        if serialization_format == SERIALIZATION_FORMAT_DILL:
+            import dill
+
+            return dill.load(f)
+        elif serialization_format == SERIALIZATION_FORMAT_PICKLE:
             return pickle.load(f)
         elif serialization_format == SERIALIZATION_FORMAT_CLOUDPICKLE:
             import cloudpickle
@@ -315,6 +353,46 @@ def _load_pyfunc(model_path: str) -> Any:
     )
     logger.debug("pyfunc_flavor_conf: {}".format(pyfunc_flavor_conf))
     serialized_model_path = os.path.join(model_path, pyfunc_flavor_conf["model_path"])
+    logger.debug("serialized_model_path: {}".format(serialized_model_path))
+
+    return _load_serialized_model(
+        serialized_model_path=serialized_model_path,
+        serialization_format=serialization_format,
+    )
+
+
+def _load_clearbox(model_path: str) -> Any:
+    """Load Scikit-Learn model as a ClearboxWrapper model.
+
+    Parameters
+    ----------
+    model_path : str
+        File path to the model with sklearn flavor.
+
+    Returns
+    -------
+    Any
+        A Scikit-Learn model.
+    """
+    try:
+        sklearn_flavor_conf = _get_flavor_configuration(
+            model_path=model_path, flavor_name=FLAVOR_NAME
+        )
+        serialization_format = sklearn_flavor_conf.get(
+            "serialization_format", SERIALIZATION_FORMAT_DILL
+        )
+    except ClearboxWrapperException:
+        logger.warning(
+            "Could not find scikit-learn flavor configuration during model loading process."
+            " Assuming 'pickle' serialization format."
+        )
+        serialization_format = SERIALIZATION_FORMAT_PICKLE
+
+    clearbox_flavor_conf = _get_flavor_configuration(
+        model_path=model_path, flavor_name=wrapper.FLAVOR_NAME
+    )
+    logger.debug("clearbox_flavor_conf: {}".format(clearbox_flavor_conf))
+    serialized_model_path = os.path.join(model_path, clearbox_flavor_conf["model_path"])
     logger.debug("serialized_model_path: {}".format(serialized_model_path))
 
     return _load_serialized_model(

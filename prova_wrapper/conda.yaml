@@ -5,6 +5,6 @@ dependencies:
 - python=3.8.5
 - pip
 - pip:
+  - dill==0.3.3
   - scikit-learn==0.23.2
-  - cloudpickle==1.6.0
 name: conda-env

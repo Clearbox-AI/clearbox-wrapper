@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
-from clearbox_wrapper.signature.schema import ColumnSpec, DataType, Schema
+from .schema import ColumnSpec, DataType, Schema
 
 
 class TensorsNotSupportedException(ClearboxWrapperException):

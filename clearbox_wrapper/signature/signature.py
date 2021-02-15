@@ -1,18 +1,30 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
-from clearbox_wrapper.signature.schema import Schema
-from clearbox_wrapper.signature.utils import _infer_schema
+import numpy as np
+import pandas as pd
+
+from clearbox_wrapper.schema.schema import Schema
+from clearbox_wrapper.schema.utils import _infer_schema
+
+InferableDataset = Union[pd.DataFrame, np.ndarray, Dict[str, np.ndarray]]
 
 
-class ModelSignature(object):
-    def __init__(self, inputs: Schema):
+class Signature(object):
+    def __init__(self, inputs: Schema, outputs: Schema = None):
         if not isinstance(inputs, Schema):
             raise TypeError("inputs must be type Schema, got '{}'".format(type(inputs)))
+        if outputs is not None and not isinstance(outputs, Schema):
+            raise TypeError(
+                "outputs must be either None or mlflow.models.signature.Schema, "
+                "got '{}'".format(type(inputs))
+            )
         self.inputs = inputs
+        self.outputs = outputs
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "inputs": self.inputs.to_json(),
+            "outputs": self.outputs.to_json() if self.outputs is not None else None,
         }
 
     @classmethod
@@ -22,19 +34,32 @@ class ModelSignature(object):
         :param signature_dict: Dictionary representation of model signature.
                                Expected dictionary format:
                                `{'inputs': <json string>}`
-        :return: ModelSignature populated with the data form the dictionary.
+        :return: Signature populated with the data form the dictionary.
         """
         inputs = Schema.from_json(signature_dict["inputs"])
-        return cls(inputs)
+        if "outputs" in signature_dict and signature_dict["outputs"] is not None:
+            outputs = Schema.from_json(signature_dict["outputs"])
+            return cls(inputs, outputs)
+        else:
+            return cls(inputs)
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, ModelSignature) and self.inputs == other.inputs
+        return (
+            isinstance(other, Signature)
+            and self.inputs == other.inputs
+            and self.outputs == other.outputs
+        )
 
     def __repr__(self) -> str:
-        return "inputs: \n" "  {}\n".format(repr(self.inputs))
+        return (
+            "inputs: \n"
+            "  {}\n"
+            "outputs: \n"
+            "  {}\n".format(repr(self.inputs), repr(self.outputs))
+        )
 
 
-def infer_signature(model_input: Any) -> ModelSignature:
+def infer_signature(input_data: Any, output_data: InferableDataset = None) -> Signature:
     """
     Infer an MLflow model signature from the training data (input).
     The signature represents model input as data frames with (optionally) named columns
@@ -51,7 +76,8 @@ def infer_signature(model_input: Any) -> ModelSignature:
     :param model_input: Valid input to the model. E.g. (a subset of) the training dataset.
     :param model_output: Valid model output. E.g. Model predictions for the (subset of) training
                          dataset.
-    :return: ModelSignature
+    :return: Signature
     """
-    inputs = _infer_schema(model_input)
-    return ModelSignature(inputs)
+    inputs = _infer_schema(input_data)
+    outputs = _infer_schema(output_data) if output_data is not None else None
+    return Signature(inputs, outputs)
