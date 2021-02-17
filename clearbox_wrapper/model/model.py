@@ -5,8 +5,8 @@ from typing import Dict, Optional
 
 import yaml
 
-from clearbox_wrapper.schema.schema import Schema
-from clearbox_wrapper.signature.signature import Signature
+from clearbox_wrapper.schema import Schema
+from clearbox_wrapper.signature import Signature
 
 
 MLMODEL_FILE_NAME = "MLmodel"
@@ -19,8 +19,9 @@ class Model(object):
         self,
         timestamp: Optional[datetime] = None,
         flavors: Optional[Dict] = None,
-        preprocessing_signature: Optional[Signature] = None,
         model_signature: Optional[Signature] = None,
+        preprocessing_signature: Optional[Signature] = None,
+        preparation_signature: Optional[Signature] = None,
     ) -> None:
         """Create a new Model object.
 
@@ -40,8 +41,9 @@ class Model(object):
         """
         self.timestamp = str(timestamp or datetime.utcnow())
         self.flavors = flavors if flavors is not None else {}
-        self.preprocessing_signature = preprocessing_signature
         self.model_signature = model_signature
+        self.preprocessing_signature = preprocessing_signature
+        self.preparation_signature = preparation_signature
 
     def __eq__(self, other: "Model") -> bool:
         """Check if two models are equal.
@@ -59,6 +61,34 @@ class Model(object):
         if not isinstance(other, Model):
             return False
         return self.__dict__ == other.__dict__
+
+    def get_data_preparation_input_schema(self) -> Optional[Schema]:
+        """Get the data preparation inputs schema."
+
+        Returns
+        -------
+        Schema
+            Data preparation inputs schema: specification of types and column names.
+        """
+        return (
+            self.preparation_signature.inputs
+            if self.preparation_signature is not None
+            else None
+        )
+
+    def get_data_preparation_output_schema(self) -> Optional[Schema]:
+        """Get the data preparation outputs schema."
+
+        Returns
+        -------
+        Schema
+            Data preparation outputs schema: specification of types and column names.
+        """
+        return (
+            self.preparation_signature.outputs
+            if self.preparation_signature is not None
+            else None
+        )
 
     def get_preprocessing_input_schema(self) -> Optional[Schema]:
         """Get the preprocessing inputs schema."
@@ -122,24 +152,46 @@ class Model(object):
         return self
 
     @property
-    def preprocessing_signature(self) -> Optional[Signature]:
-        """Get the preprocessing associated with the model.
+    def preparation_signature(self) -> Optional[Signature]:
+        """Get the data preparation signature associated with the model.
 
         Returns
         -------
-        Optional[Preprocessing]
-            A Preprocessing instance.
+        Optional[Signature]
+            Data preparation signature as a Signature instance.
+        """
+        return self._preparation_signature
+
+    @preparation_signature.setter
+    def preparation_signature(self, value: Signature) -> None:
+        """Set the data preparation signature of the model
+
+        Parameters
+        ----------
+        value : Signature
+            Data preparation signature as a Signature instance.
+        """
+        self._preparation_signature = value
+
+    @property
+    def preprocessing_signature(self) -> Optional[Signature]:
+        """Get the preprocessing signature associated with the model.
+
+        Returns
+        -------
+        Optional[Signature]
+            Preprocessing signature as a Signature instance.
         """
         return self._preprocessing_signature
 
     @preprocessing_signature.setter
     def preprocessing_signature(self, value: Signature) -> None:
-        """Set the preprocessing of the model
+        """Set the preprocessing signature of the model
 
         Parameters
         ----------
-        value : Preprocessing
-            Preprocessing as a Preprocessing object.
+        value : Signature
+            Preprocessing signature as a Signature instance.
         """
         self._preprocessing_signature = value
 
@@ -182,6 +234,8 @@ class Model(object):
             model_dict[
                 "preprocessing_signature"
             ] = self.preprocessing_signature.to_dict()
+        if self.preparation_signature is not None:
+            model_dict["preparation_signature"] = self.preparation_signature.to_dict()
         return model_dict
 
     def to_yaml(self, stream=None):
@@ -277,6 +331,13 @@ class Model(object):
             model_dict["preprocessing_signature"] = Signature.from_dict(
                 model_dict["preprocessing_signature"]
             )
-        print(model_dict)
+
+        if "preparation_signature" in model_dict and isinstance(
+            model_dict["preparation_signature"], dict
+        ):
+            model_dict = model_dict.copy()
+            model_dict["preparation_signature"] = Signature.from_dict(
+                model_dict["preparation_signature"]
+            )
 
         return cls(**model_dict)

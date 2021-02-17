@@ -1,5 +1,6 @@
 import importlib
 import os
+import sys
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from loguru import logger
@@ -7,25 +8,38 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from clearbox_wrapper.data_preparation import (
+    DataPreparation,
+    load_serialized_data_preparation,
+)
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 from clearbox_wrapper.preprocessing import (
     load_serialized_preprocessing,
     Preprocessing,
 )
-from clearbox_wrapper.signature.signature import infer_signature, Signature
-import clearbox_wrapper.slearn.sklearn
-from clearbox_wrapper.utils.environment import (
+from clearbox_wrapper.signature import infer_signature
+from clearbox_wrapper.sklearn import save_sklearn_model
+from clearbox_wrapper.utils import (
     _get_default_conda_env,
     get_major_minor_py_version,
+    get_super_classes_names,
     PYTHON_VERSION,
 )
-from clearbox_wrapper.utils.model_utils import get_super_classes_names
-from . import DATA, FLAVOR_NAME, MAIN, PREPROCESSING, PY_VERSION
 from .model import ClearboxModel
+from .utils import (
+    DATA,
+    DATA_PREPARATION,
+    FLAVOR_NAME,
+    MAIN,
+    PREPROCESSING,
+    PY_VERSION,
+    zip_directory,
+)
 
 WrapperInput = Union[pd.DataFrame, pd.Series, np.ndarray, List[Any], Dict[str, Any]]
 WrapperOutput = Union[pd.DataFrame, pd.Series, np.ndarray, list]
+logger.add(sys.stderr, backtrace=False, diagnose=True)
 
 
 class WrapperModel(ClearboxModel):
@@ -42,34 +56,56 @@ class WrapperModel(ClearboxModel):
             )
         if not model_meta:
             raise ClearboxWrapperException("Model is missing metadata.")
+        if data_preparation is not None and preprocessing is None:
+            raise ValueError(
+                "Attribute 'preprocessing' is None but attribute "
+                "'data_preparation' is not None. If you have a single step "
+                "preprocessing, pass it as attribute 'preprocessing'"
+            )
+
         self._model_meta = model_meta
         self._model_impl = model_impl
         self._preprocessing = preprocessing
         self._data_preparation = data_preparation
 
+    @logger.catch(reraise=True)
     def prepare_data(self, data: WrapperInput) -> WrapperOutput:
         if self._data_preparation is None:
             raise ClearboxWrapperException("This model has no data preparation.")
         return self._data_preparation.prepare_data(data)
 
+    @logger.catch(reraise=True)
     def preprocess_data(self, data: WrapperInput) -> WrapperOutput:
         if self._preprocessing is None:
             raise ClearboxWrapperException("This model has no preprocessing.")
         return self._preprocessing.preprocess(data)
 
+    @logger.catch(reraise=True)
     def predict(
         self, data: WrapperInput, preprocess: bool = True, prepare_data: bool = True
     ) -> WrapperOutput:
-        if prepare_data:
+        if prepare_data and self._data_preparation is not None:
             data = self._data_preparation.prepare_data(data)
 
-        if preprocess:
+        if preprocess and self._preprocessing is not None:
             data = self._preprocessing.preprocess(data)
 
-        if hasattr(self._model_impl, "predict_proba"):
-            return self._model_impl.predict_proba(data)
-        else:
-            return self._model_impl.predict(data)
+        return self._model_impl.predict(data)
+
+    @logger.catch(reraise=True)
+    def predict_proba(
+        self, data: WrapperInput, preprocess: bool = True, prepare_data: bool = True
+    ) -> WrapperOutput:
+        if not hasattr(self._model_impl, "predict_proba"):
+            raise ClearboxWrapperException("This model has no predict_proba method.")
+
+        if prepare_data and self._data_preparation is not None:
+            data = self._data_preparation.prepare_data(data)
+
+        if preprocess and self._preprocessing is not None:
+            data = self._preprocessing.preprocess(data)
+
+        return self._model_impl.predict_proba(data)
 
     @property
     def metadata(self):
@@ -155,56 +191,67 @@ def save_model(
     preprocessing: Optional[Callable] = None,
     data_preparation: Optional[Callable] = None,
     additional_deps: Optional[List] = None,
-    model_signature: Optional[Signature] = None,
     zip: bool = True,
 ) -> None:
 
-    logger.debug("Sono save_model di Wrapper.")
     mlmodel = Model()
+    saved_preprocessing_subpath = None
+    saved_data_preparation_subpath = None
 
-    if preprocessing is None:
-        saved_preprocessing_subpath = None
-        if model_signature is not None:
-            mlmodel.model_signature = model_signature
-        elif input_data is not None:
-            logger.debug("input_data is not None")
-            model_signature = infer_signature(input_data)
-            logger.debug("model_signature:\n{}".format(model_signature))
-            mlmodel.model_signature = model_signature
-            logger.debug("mlmodel:\n{}".format(mlmodel))
-    else:
-        logger.debug("preprocessing is not None")
+    if data_preparation and preprocessing:
+        preparation = DataPreparation(data_preparation)
         data_preprocessing = Preprocessing(preprocessing)
-        logger.debug("data_preprocessing:\n{}".format(data_preprocessing))
+        saved_data_preparation_subpath = "data_preparation.dill"
+        saved_preprocessing_subpath = "preprocessing.dill"
+        if input_data is not None:
+            data_preparation_output = preparation.prepare_data(input_data)
+            preprocessing_output = data_preprocessing.preprocess(
+                data_preparation_output
+            )
+            data_preparation_signature = infer_signature(
+                input_data, data_preparation_output
+            )
+            preprocessing_signature = infer_signature(
+                data_preparation_output, preprocessing_output
+            )
+            model_signature = infer_signature(preprocessing_output)
+            mlmodel.preparation_signature = data_preparation_signature
+            mlmodel.preprocessing_signature = preprocessing_signature
+            mlmodel.model_signature = model_signature
+    elif preprocessing:
+        data_preprocessing = Preprocessing(preprocessing)
         saved_preprocessing_subpath = "preprocessing.dill"
         if input_data is not None:
             preprocessing_output = data_preprocessing.preprocess(input_data)
-            logger.debug("preprocessing_output:\n{}".format(preprocessing_output))
             preprocessing_signature = infer_signature(input_data, preprocessing_output)
-            logger.debug("preprocessing_signature:\n{}".format(preprocessing_signature))
-            mlmodel.preprocessing_signature = preprocessing_signature
             model_signature = infer_signature(preprocessing_output)
-            logger.debug("model_signature:\n{}".format(model_signature))
+            mlmodel.preprocessing_signature = preprocessing_signature
             mlmodel.model_signature = model_signature
-            logger.debug("mlmodel:\n{}".format(mlmodel))
+    elif input_data is not None:
+        model_signature = infer_signature(input_data)
+        mlmodel.model_signature = model_signature
 
     conda_env = _check_and_get_conda_env(model, additional_deps)
-    logger.debug("conda_env:\n{}".format(conda_env))
-
-    logger.debug("Model: {}".format(model))
     model_super_classes = get_super_classes_names(model)
-    logger.debug("model_super_classes: {}".format(model_super_classes))
+
     if any("sklearn" in super_class for super_class in model_super_classes):
         logger.debug("E' un modello Sklearn")
-        clearbox_wrapper.slearn.sklearn.save_sklearn_model(
+        save_sklearn_model(
             model,
             path,
             conda_env=conda_env,
             mlmodel=mlmodel,
             add_clearbox_flavor=True,
             preprocessing_subpath=saved_preprocessing_subpath,
+            data_preparation_subpath=saved_data_preparation_subpath,
         )
+
+    if preprocessing:
         data_preprocessing.save(os.path.join(path, saved_preprocessing_subpath))
+    if data_preparation:
+        preparation.save(os.path.join(path, saved_data_preparation_subpath))
+    if zip:
+        zip_directory(path)
 
 
 def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel:
@@ -228,29 +275,11 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
     ClearboxWrapperException
         If the model does not have the python_function flavor.
     """
-    logger.debug(
-        "Sono load_model, ho ricevuto: model_path={}, suppress_warning={}".format(
-            model_path, suppress_warnings
-        )
-    )
-
-    logger.debug(
-        "Sono load_model, sto per chiamare Model.load con questo parametro: {}".format(
-            os.path.join(model_path, MLMODEL_FILE_NAME)
-        )
-    )
+    preprocessing = None
+    data_preparation = None
 
     mlmodel = Model.load(os.path.join(model_path, MLMODEL_FILE_NAME))
-
-    logger.debug("Sono load_model, ho caricato model_meta: {}".format(mlmodel))
-
     clearbox_flavor_configuration = mlmodel.flavors.get(FLAVOR_NAME)
-
-    logger.debug(
-        "Sono load_model, ecco pyfunc_flavor_configuration: {}".format(
-            clearbox_flavor_configuration
-        )
-    )
 
     if clearbox_flavor_configuration is None:
         raise ClearboxWrapperException(
@@ -266,12 +295,6 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
             model_py_version=model_python_version
         )
 
-    logger.debug(
-        "Sono load_model, ecco clearbox_flavor_configuration[MAIN]: {}".format(
-            clearbox_flavor_configuration[MAIN]
-        )
-    )
-
     data_path = (
         os.path.join(model_path, clearbox_flavor_configuration[DATA])
         if (DATA in clearbox_flavor_configuration)
@@ -282,18 +305,25 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
         clearbox_flavor_configuration[MAIN]
     )._load_clearbox(data_path)
 
-    logger.debug("Sono load_model, ecco model_impl: {}".format(model_implementation))
-
     if PREPROCESSING in clearbox_flavor_configuration:
-        logger.warning("PORCO DI IDDIO!")
         preprocessing_path = os.path.join(
             model_path, clearbox_flavor_configuration[PREPROCESSING]
         )
         preprocessing = load_serialized_preprocessing(preprocessing_path)
         logger.warning(preprocessing)
 
+    if DATA_PREPARATION in clearbox_flavor_configuration:
+        data_preparation_path = os.path.join(
+            model_path, clearbox_flavor_configuration[DATA_PREPARATION]
+        )
+        data_preparation = load_serialized_data_preparation(data_preparation_path)
+        logger.warning(data_preparation)
+
     loaded_model = WrapperModel(
-        model_meta=mlmodel, model_impl=model_implementation, preprocessing=preprocessing
+        model_meta=mlmodel,
+        model_impl=model_implementation,
+        preprocessing=preprocessing,
+        data_preparation=data_preparation,
     )
 
     logger.info(loaded_model)

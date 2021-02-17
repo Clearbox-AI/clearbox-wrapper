@@ -8,11 +8,10 @@ import yaml
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 import clearbox_wrapper.pyfunc as pyfunc
-from clearbox_wrapper.signature.signature import Signature
-from clearbox_wrapper.utils.environment import _get_default_conda_env
-from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
-import clearbox_wrapper.wrapper as wrapper
+from clearbox_wrapper.signature import Signature
+from clearbox_wrapper.utils import _get_default_conda_env, _get_flavor_configuration
 from clearbox_wrapper.wrapper import add_clearbox_flavor_to_model
+from clearbox_wrapper.wrapper import FLAVOR_NAME as cb_flavor_name
 
 
 FLAVOR_NAME = "sklearn"
@@ -69,6 +68,7 @@ def save_sklearn_model(
     signature: Optional[Signature] = None,
     add_clearbox_flavor: bool = False,
     preprocessing_subpath: str = None,
+    data_preparation_subpath: str = None,
 ):
     """Save a Scikit-Learn model. Produces an MLflow Model containing the following flavors:
         * wrapper.sklearn
@@ -199,14 +199,14 @@ def save_sklearn_model(
             " wrapped_model={0}, loader_module={1},"
             " model_path={2}, env={3}".format(
                 mlmodel,
-                "clearbox_wrapper.slearn.sklearn",
+                "clearbox_wrapper.sklearn",
                 model_data_subpath,
                 conda_env_subpath,
             )
         )
         pyfunc.add_pyfunc_flavor_to_model(
             mlmodel,
-            loader_module="clearbox_wrapper.slearn.sklearn",
+            loader_module="clearbox_wrapper.sklearn",
             model_path=model_data_subpath,
             env=conda_env_subpath,
         )
@@ -214,10 +214,11 @@ def save_sklearn_model(
     if add_clearbox_flavor:
         add_clearbox_flavor_to_model(
             mlmodel,
-            loader_module="clearbox_wrapper.slearn.sklearn",
+            loader_module="clearbox_wrapper.sklearn",
             model_path=model_data_subpath,
             env=conda_env_subpath,
             preprocessing=preprocessing_subpath,
+            data_preparation=data_preparation_subpath,
         )
 
     logger.debug("Wrapped model after add_to_model: {}".format(mlmodel))
@@ -389,7 +390,7 @@ def _load_clearbox(model_path: str) -> Any:
         serialization_format = SERIALIZATION_FORMAT_PICKLE
 
     clearbox_flavor_conf = _get_flavor_configuration(
-        model_path=model_path, flavor_name=wrapper.FLAVOR_NAME
+        model_path=model_path, flavor_name=cb_flavor_name
     )
     logger.debug("clearbox_flavor_conf: {}".format(clearbox_flavor_conf))
     serialized_model_path = os.path.join(model_path, clearbox_flavor_conf["model_path"])

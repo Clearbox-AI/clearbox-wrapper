@@ -1,29 +1,36 @@
 from copy import deepcopy
+import os
+import shutil
+import zipfile
 
 from clearbox_wrapper.model import Model
 from clearbox_wrapper.utils import PYTHON_VERSION
 
-FLAVOR_NAME = "python_function"
+FLAVOR_NAME = "clearbox"
 MAIN = "loader_module"
 CODE = "code"
 DATA = "data"
 ENV = "env"
+PREPROCESSING = "preprocessing_path"
+DATA_PREPARATION = "data_preparation_path"
 PY_VERSION = "python_version"
 
 
-def add_pyfunc_flavor_to_model(
+def add_clearbox_flavor_to_model(
     model: Model,
     loader_module: str,
     data: str = None,
     code=None,
     env: str = None,
-    **kwargs
+    preprocessing: str = None,
+    data_preparation: str = None,
+    **kwargs,
 ) -> Model:
-    """Add Pyfunc flavor to a model configuration. Caller can use this to create a valid
-    Pyfunc model flavor out of an existing directory structure. A Pyfunc flavor will be
+    """Add Clearbox flavor to a model configuration. Caller can use this to create a valid
+    Clearbox model flavor out of an existing directory structure. A Clearbox flavor will be
     added to the flavors list into the MLModel file:
         flavors:
-            python_function:
+            clearbox:
                 env: ...
                 loader_module: ...
                 model_path: ...
@@ -48,6 +55,7 @@ def add_pyfunc_flavor_to_model(
         The Model with the new flavor added.
     """
     parms = deepcopy(kwargs)
+
     parms[MAIN] = loader_module
     parms[PY_VERSION] = PYTHON_VERSION
     if code:
@@ -56,15 +64,25 @@ def add_pyfunc_flavor_to_model(
         parms[DATA] = data
     if env:
         parms[ENV] = env
+    if preprocessing:
+        parms[PREPROCESSING] = preprocessing
+    if data_preparation:
+        parms[DATA_PREPARATION] = data_preparation
     return model.add_flavor(FLAVOR_NAME, **parms)
 
 
-__all__ = [
-    add_pyfunc_flavor_to_model,
-    FLAVOR_NAME,
-    MAIN,
-    PY_VERSION,
-    CODE,
-    DATA,
-    ENV,
-]
+def zip_directory(directory_path: str) -> None:
+    """Given a directory path, zip the directory.
+
+    Parameters
+    ----------
+    directory_path : str
+        Directory path
+    """
+    zip_object = zipfile.ZipFile(directory_path + ".zip", "w", zipfile.ZIP_DEFLATED)
+    root_len = len(directory_path) + 1
+    for base, _dirs, files in os.walk(directory_path):
+        for file in files:
+            fn = os.path.join(base, file)
+            zip_object.write(fn, fn[root_len:])
+    shutil.rmtree(directory_path)

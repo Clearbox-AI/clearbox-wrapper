@@ -61,7 +61,7 @@ class DataPreparation(object):
         """
         self._data_preparation = data_preparation_function
 
-    def preprocess(self, data: DataPreparationInput) -> DataPreparationOutput:
+    def prepare_data(self, data: DataPreparationInput) -> DataPreparationOutput:
         """Prepare input data using the data preparation function.
 
         Parameters

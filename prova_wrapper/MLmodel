@@ -1,13 +1,13 @@
 flavors:
   clearbox:
     env: conda.yaml
-    loader_module: clearbox_wrapper.slearn.sklearn
+    loader_module: clearbox_wrapper.sklearn
     model_path: model.dill
     preprocessing_path: preprocessing.dill
     python_version: 3.8.5
   python_function:
     env: conda.yaml
-    loader_module: clearbox_wrapper.slearn.sklearn
+    loader_module: clearbox_wrapper.sklearn
     model_path: model.dill
     python_version: 3.8.5
   sklearn:
@@ -23,4 +23,4 @@ preprocessing_signature:
 signature:
   inputs: '[{"type": "double"}, {"type": "double"}, {"type": "double"}, {"type": "double"}]'
   outputs: null
-timestamp: '2021-02-12 07:16:26.828918'
+timestamp: '2021-02-17 13:41:03.336965'

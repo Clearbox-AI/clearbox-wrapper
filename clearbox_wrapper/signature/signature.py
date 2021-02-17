@@ -3,8 +3,7 @@ from typing import Any, Dict, Union
 import numpy as np
 import pandas as pd
 
-from clearbox_wrapper.schema.schema import Schema
-from clearbox_wrapper.schema.utils import _infer_schema
+from clearbox_wrapper.schema import _infer_schema, Schema
 
 InferableDataset = Union[pd.DataFrame, np.ndarray, Dict[str, np.ndarray]]
 

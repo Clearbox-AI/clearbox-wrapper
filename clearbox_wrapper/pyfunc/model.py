@@ -11,9 +11,12 @@ import yaml
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 from clearbox_wrapper.pyfunc import add_pyfunc_flavor_to_model, FLAVOR_NAME
-from clearbox_wrapper.utils.environment import _get_default_conda_env
-from clearbox_wrapper.utils.file_utils import _copy_file_or_tree, TempDir
-from clearbox_wrapper.utils.model_utils import _get_flavor_configuration
+from clearbox_wrapper.utils import (
+    _copy_file_or_tree,
+    _get_default_conda_env,
+    _get_flavor_configuration,
+    TempDir,
+)
 
 CONFIG_KEY_ARTIFACTS = "artifacts"
 CONFIG_KEY_ARTIFACT_RELATIVE_PATH = "path"

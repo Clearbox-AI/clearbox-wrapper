@@ -22,13 +22,13 @@ from clearbox_wrapper.pyfunc.model import (
     _save_model_with_class_artifacts_params,
     get_default_conda_env,
 )
-from clearbox_wrapper.schema.schema import DataType, Schema
-from clearbox_wrapper.signature.signature import Signature
-from clearbox_wrapper.utils.environment import (
+from clearbox_wrapper.schema import DataType, Schema
+from clearbox_wrapper.signature import Signature
+from clearbox_wrapper.utils import (
+    _copy_file_or_tree,
     get_major_minor_py_version,
     PYTHON_VERSION,
 )
-from clearbox_wrapper.utils.file_utils import _copy_file_or_tree
 
 
 PyFuncInput = Union[pd.DataFrame, np.ndarray, List[Any], Dict[str, Any]]
@@ -272,29 +272,8 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> PyFuncModel:
     ClearboxWrapperException
         If the model does not have the python_function flavor.
     """
-    logger.debug(
-        "Sono load_model, ho ricevuto: model_path={}, suppress_warning={}".format(
-            model_path, suppress_warnings
-        )
-    )
-
-    logger.debug(
-        "Sono load_model, sto per chiamare Model.load con questo parametro: {}".format(
-            os.path.join(model_path, MLMODEL_FILE_NAME)
-        )
-    )
-
     mlmodel = Model.load(os.path.join(model_path, MLMODEL_FILE_NAME))
-
-    logger.debug("Sono load_model, ho caricato model_meta: {}".format(mlmodel))
-
     pyfunc_flavor_configuration = mlmodel.flavors.get(FLAVOR_NAME)
-
-    logger.debug(
-        "Sono load_model, ecco pyfunc_flavor_configuration: {}".format(
-            pyfunc_flavor_configuration
-        )
-    )
 
     if pyfunc_flavor_configuration is None:
         raise ClearboxWrapperException(
@@ -320,17 +299,10 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> PyFuncModel:
         else model_path
     )
 
-    logger.debug(
-        "Sono load_model, ecco pyfunc_flavor_configuration[MAIN]: {}".format(
-            pyfunc_flavor_configuration[MAIN]
-        )
-    )
-
     model_implementation = importlib.import_module(
         pyfunc_flavor_configuration[MAIN]
     )._load_pyfunc(data_path)
 
-    logger.debug("Sono load_model, ecco model_impl: {}".format(model_implementation))
     return PyFuncModel(model_meta=mlmodel, model_impl=model_implementation)
 
 

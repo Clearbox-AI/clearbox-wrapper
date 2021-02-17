@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 
 import dill
 
-from clearbox_wrapper.utils.environment import _get_default_conda_env
+from clearbox_wrapper.utils import _get_default_conda_env
 
 
 def get_default_conda_env():
@@ -30,6 +30,10 @@ class ClearboxModel(object, metaclass=ABCMeta):
 
     @abstractmethod
     def predict(self, model_input):
+        pass
+
+    @abstractmethod
+    def predict_proba(self, model_input):
         pass
 
 
