@@ -288,6 +288,92 @@ def test_iris_sklearn_get_prepared_and_processed_data(
 
 
 @pytest.mark.parametrize(
+    "sklearn_model, preprocessor",
+    [
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
+        (
+            svm.SVC(probability=True),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
+        ),
+        (
+            neighbors.KNeighborsClassifier(),
+            sk_preprocessing.RobustScaler(),
+        ),
+        (tree.DecisionTreeClassifier(), sk_preprocessing.RobustScaler()),
+        (ensemble.RandomForestClassifier(), sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_sklearn_predict_without_preprocessing(
+    sklearn_model, preprocessor, iris_data, drop_column_transformer, tmpdir
+):
+    x, y = iris_data
+    data_preparation = drop_column_transformer
+    x_prepared = data_preparation(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+    fitted_model = sklearn_model.fit(x_transformed, y)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(
+        tmp_model_path,
+        fitted_model,
+        preprocessing=preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(tmp_model_path)
+    original_model_predictions = fitted_model.predict_proba(x_transformed[:5])
+    loaded_model_predictions = loaded_model.predict_proba(x[:5], preprocess=False)
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        original_model_predictions,
+        loaded_model_predictions,
+    )
+
+
+@pytest.mark.parametrize(
+    "sklearn_model, preprocessor",
+    [
+        (
+            linear_model.LogisticRegression(max_iter=150),
+            sk_preprocessing.StandardScaler(),
+        ),
+        (
+            svm.SVC(probability=True),
+            sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50),
+        ),
+        (
+            neighbors.KNeighborsClassifier(),
+            sk_preprocessing.RobustScaler(),
+        ),
+        (tree.DecisionTreeClassifier(), sk_preprocessing.RobustScaler()),
+        (ensemble.RandomForestClassifier(), sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_sklearn_predict_without_data_preparation(
+    sklearn_model, preprocessor, iris_data, drop_column_transformer, tmpdir
+):
+    x, y = iris_data
+    data_preparation = drop_column_transformer
+    x_prepared = data_preparation(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+    fitted_model = sklearn_model.fit(x_transformed, y)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(
+        tmp_model_path,
+        fitted_model,
+        preprocessing=preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(tmp_model_path)
+    with pytest.raises(ValueError):
+        loaded_model.predict_proba(x[:5], prepare_data=False)
+
+
+@pytest.mark.parametrize(
     "sklearn_model",
     [
         (linear_model.LogisticRegression(max_iter=150)),

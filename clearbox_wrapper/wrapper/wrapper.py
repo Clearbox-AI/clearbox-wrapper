@@ -26,6 +26,7 @@ from clearbox_wrapper.utils import (
     get_super_classes_names,
     PYTHON_VERSION,
 )
+from clearbox_wrapper.xgboost import save_xgboost_model
 from .model import ClearboxModel
 from .utils import (
     DATA,
@@ -39,7 +40,7 @@ from .utils import (
 
 WrapperInput = Union[pd.DataFrame, pd.Series, np.ndarray, List[Any], Dict[str, Any]]
 WrapperOutput = Union[pd.DataFrame, pd.Series, np.ndarray, list]
-logger.add(sys.stderr, backtrace=False, diagnose=True)
+logger.add(sys.stdout, backtrace=False, diagnose=False)
 
 
 class WrapperModel(ClearboxModel):
@@ -68,31 +69,37 @@ class WrapperModel(ClearboxModel):
         self._preprocessing = preprocessing
         self._data_preparation = data_preparation
 
-    @logger.catch(reraise=True)
     def prepare_data(self, data: WrapperInput) -> WrapperOutput:
         if self._data_preparation is None:
             raise ClearboxWrapperException("This model has no data preparation.")
         return self._data_preparation.prepare_data(data)
 
-    @logger.catch(reraise=True)
     def preprocess_data(self, data: WrapperInput) -> WrapperOutput:
         if self._preprocessing is None:
             raise ClearboxWrapperException("This model has no preprocessing.")
         return self._preprocessing.preprocess(data)
 
-    @logger.catch(reraise=True)
     def predict(
         self, data: WrapperInput, preprocess: bool = True, prepare_data: bool = True
     ) -> WrapperOutput:
         if prepare_data and self._data_preparation is not None:
             data = self._data_preparation.prepare_data(data)
+        elif not prepare_data:
+            logger.warning(
+                "This model has data preparation and you're bypassing it,"
+                " this can lead to unexpected results."
+            )
 
         if preprocess and self._preprocessing is not None:
             data = self._preprocessing.preprocess(data)
+        elif not preprocess:
+            logger.warning(
+                "This model has preprocessing and you're bypassing it,"
+                " this can lead to unexpected results."
+            )
 
         return self._model_impl.predict(data)
 
-    @logger.catch(reraise=True)
     def predict_proba(
         self, data: WrapperInput, preprocess: bool = True, prepare_data: bool = True
     ) -> WrapperOutput:
@@ -101,9 +108,19 @@ class WrapperModel(ClearboxModel):
 
         if prepare_data and self._data_preparation is not None:
             data = self._data_preparation.prepare_data(data)
+        elif not prepare_data:
+            logger.warning(
+                "This model has data preparation and you're bypassing it,"
+                " this can lead to unexpected results."
+            )
 
         if preprocess and self._preprocessing is not None:
             data = self._preprocessing.preprocess(data)
+        elif not preprocess:
+            logger.warning(
+                "This model has preprocessing and you're bypassing it,"
+                " this can lead to unexpected results."
+            )
 
         return self._model_impl.predict_proba(data)
 
@@ -198,6 +215,13 @@ def save_model(
     saved_preprocessing_subpath = None
     saved_data_preparation_subpath = None
 
+    if data_preparation is not None and preprocessing is None:
+        raise ValueError(
+            "Attribute 'preprocessing' is None but attribute "
+            "'data_preparation' is not None. If you have a single step "
+            "preprocessing, pass it as attribute 'preprocessing'"
+        )
+
     if data_preparation and preprocessing:
         preparation = DataPreparation(data_preparation)
         data_preprocessing = Preprocessing(preprocessing)
@@ -234,9 +258,21 @@ def save_model(
     conda_env = _check_and_get_conda_env(model, additional_deps)
     model_super_classes = get_super_classes_names(model)
 
+    logger.warning(model_super_classes)
     if any("sklearn" in super_class for super_class in model_super_classes):
         logger.debug("E' un modello Sklearn")
         save_sklearn_model(
+            model,
+            path,
+            conda_env=conda_env,
+            mlmodel=mlmodel,
+            add_clearbox_flavor=True,
+            preprocessing_subpath=saved_preprocessing_subpath,
+            data_preparation_subpath=saved_data_preparation_subpath,
+        )
+    elif any("xgboost" in super_class for super_class in model_super_classes):
+        logger.debug("E' un modello Xgboost")
+        save_xgboost_model(
             model,
             path,
             conda_env=conda_env,
@@ -301,6 +337,8 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
         else model_path
     )
 
+    logger.warning("-- Data path: {}".format(data_path))
+
     model_implementation = importlib.import_module(
         clearbox_flavor_configuration[MAIN]
     )._load_clearbox(data_path)
@@ -325,8 +363,5 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
         preprocessing=preprocessing,
         data_preparation=data_preparation,
     )
-
-    logger.info(loaded_model)
-    logger.info(type(loaded_model))
 
     return loaded_model
