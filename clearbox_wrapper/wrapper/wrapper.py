@@ -13,6 +13,7 @@ from clearbox_wrapper.data_preparation import (
     load_serialized_data_preparation,
 )
 from clearbox_wrapper.exceptions import ClearboxWrapperException
+from clearbox_wrapper.keras import save_keras_model
 from clearbox_wrapper.model import MLMODEL_FILE_NAME, Model
 from clearbox_wrapper.preprocessing import (
     load_serialized_preprocessing,
@@ -273,6 +274,17 @@ def save_model(
     elif any("xgboost" in super_class for super_class in model_super_classes):
         logger.debug("E' un modello Xgboost")
         save_xgboost_model(
+            model,
+            path,
+            conda_env=conda_env,
+            mlmodel=mlmodel,
+            add_clearbox_flavor=True,
+            preprocessing_subpath=saved_preprocessing_subpath,
+            data_preparation_subpath=saved_data_preparation_subpath,
+        )
+    elif any("keras" in super_class for super_class in model_super_classes):
+        logger.debug("E' un modello Keras")
+        save_keras_model(
             model,
             path,
             conda_env=conda_env,

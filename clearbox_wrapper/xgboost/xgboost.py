@@ -15,16 +15,6 @@ from clearbox_wrapper.wrapper import FLAVOR_NAME as cb_flavor_name
 
 FLAVOR_NAME = "xgboost"
 
-SERIALIZATION_FORMAT_PICKLE = "pickle"
-SERIALIZATION_FORMAT_CLOUDPICKLE = "cloudpickle"
-SERIALIZATION_FORMAT_DILL = "dill"
-
-SUPPORTED_SERIALIZATION_FORMATS = [
-    SERIALIZATION_FORMAT_PICKLE,
-    SERIALIZATION_FORMAT_CLOUDPICKLE,
-    SERIALIZATION_FORMAT_DILL,
-]
-
 
 def get_default_xgboost_conda_env() -> Dict:
     """Generate the default Conda environment for Scikit-Learn models.
@@ -42,9 +32,7 @@ def get_default_xgboost_conda_env() -> Dict:
     import xgboost as xgb
 
     pip_deps = ["xgboost=={}".format(xgb.__version__)]
-    return _get_default_conda_env(
-        additional_pip_deps=pip_deps, additional_conda_channels=None
-    )
+    return _get_default_conda_env(additional_pip_deps=pip_deps)
 
 
 def save_xgboost_model(
