@@ -116,7 +116,7 @@ def test_boston_pytorch_no_preprocessing(boston_training_test, model_path):
     x_train = torch.Tensor(x_train.values)
     y_train = torch.Tensor(y_train.values)
 
-    x_test = torch.Tensor(x_test.values)
+    x_test_tensor = torch.Tensor(x_test.values)
 
     model = BostonModel()
     model.train()
@@ -125,8 +125,8 @@ def test_boston_pytorch_no_preprocessing(boston_training_test, model_path):
     cbw.save_model(model_path, model, zip=False)
     loaded_model = cbw.load_model(model_path)
 
-    original_model_predictions = model(x_test).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    original_model_predictions = model(x_test_tensor).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -150,19 +150,19 @@ def test_boston_pytorch_preprocessing(sk_transformer, boston_training_test, mode
 
     def preprocessing_function(x_data):
         x_transformed = sk_transformer.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = BostonModel()
-    print(model.__class__)
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -178,18 +178,19 @@ def test_boston_pytorch_preprocessing_with_function_transformer(
 
     def preprocessing_function(x_data):
         x_transformed = sk_function_transformer.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = BostonModel()
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -205,19 +206,19 @@ def test_boston_pytorch_preprocessing_with_custom_transformer(
 
     def preprocessing_function(x_data):
         x_transformed = custom_transformer(x_data)
-        return torch.Tensor(x_transformed.values)
+        return x_transformed
 
     model = BostonModel()
     model.train()
     train(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed.values)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
-
+    loaded_model_predictions = loaded_model.predict(x_test)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
@@ -231,20 +232,20 @@ def test_boston_pytorch_preprocessing_with_custom_transformer(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_boston_pytorch__data_cleaning_and_preprocessing(
+def test_boston_pytorch_data_preparation_and_preprocessing(
     preprocessor, add_value_to_column_transformer, boston_training_test, model_path
 ):
     x_train, x_test, y_train, _ = boston_training_test
 
-    x_cleaned = add_value_to_column_transformer(x_train)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
     x_transformed = torch.Tensor(x_transformed)
     y_train = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = BostonModel()
     model.train()
@@ -253,16 +254,16 @@ def test_boston_pytorch__data_cleaning_and_preprocessing(
     cbw.save_model(
         model_path,
         model,
-        preprocessing_function,
-        add_value_to_column_transformer,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
         zip=False,
     )
     loaded_model = cbw.load_model(model_path)
 
-    x_test_cleaned = add_value_to_column_transformer(x_test)
-    x_test_transformed = preprocessing_function(x_test_cleaned)
-
+    x_test_prepared = add_value_to_column_transformer(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)

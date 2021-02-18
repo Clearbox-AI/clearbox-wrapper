@@ -39,8 +39,8 @@ def adult_test():
 
 
 @pytest.fixture()
-def data_cleaning():
-    def cleaning(x):
+def data_preparation():
+    def preparation(x):
         education_map = {
             "10th": "Dropout",
             "11th": "Dropout",
@@ -120,7 +120,7 @@ def data_cleaning():
         transformed_x = x.replace(mapping)
         return transformed_x
 
-    return cleaning
+    return preparation
 
 
 def keras_model(input_shape):
@@ -172,7 +172,7 @@ def test_adult_keras_preprocessing(adult_training, adult_test, model_path):
 
     model = keras_model(x_train_transformed.shape[1])
     model.fit(x_train_transformed, y_train_transformed, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, x_preprocessor, zip=False)
+    cbw.save_model(model_path, model, preprocessing=x_preprocessor, zip=False)
 
     loaded_model = cbw.load_model(model_path)
 
@@ -183,28 +183,34 @@ def test_adult_keras_preprocessing(adult_training, adult_test, model_path):
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_adult_keras_preprocessing_and_data_cleaning(
-    adult_training, adult_test, data_cleaning, model_path
+def test_adult_keras_preprocessing_and_data_preparation(
+    adult_training, adult_test, data_preparation, model_path
 ):
 
     x_training, y_training = adult_training
     x_test, _ = adult_test
     x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_train_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
     y_train_transformed = y_encoder.fit_transform(y_training)
 
     model = keras_model(x_train_transformed.shape[1])
     model.fit(x_train_transformed, y_train_transformed, epochs=10, batch_size=32)
-    cbw.save_model(model_path, model, x_preprocessor, data_cleaning, zip=False)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
+    )
 
     loaded_model = cbw.load_model(model_path)
 
-    x_test_cleaned = data_cleaning(x_test)
-    x_test_transformed = x_preprocessor.transform(x_test_cleaned)
+    x_test_prepared = data_preparation(x_test)
+    x_test_transformed = x_preprocessor.transform(x_test_prepared)
 
     original_model_predictions = model.predict_proba(x_test_transformed)
     loaded_model_predictions = loaded_model.predict(x_test)

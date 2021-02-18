@@ -96,8 +96,8 @@ def adult_test():
 
 
 @pytest.fixture()
-def data_cleaning():
-    def cleaning(x):
+def data_preparation():
+    def preparation(x):
         education_map = {
             "10th": "Dropout",
             "11th": "Dropout",
@@ -177,7 +177,7 @@ def data_cleaning():
         transformed_x = x.replace(mapping)
         return transformed_x
 
-    return cleaning
+    return preparation
 
 
 def x_and_y_preprocessing(x_dataframe):
@@ -218,7 +218,7 @@ def test_adult_pytorch_preprocessing(adult_training, adult_test, model_path):
 
     def preprocessing_function(x_data):
         x_transformed = x_preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed.todense())
+        return x_transformed.todense()
 
     model = AdultModel(x_train_transformed.shape[1])
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -226,26 +226,27 @@ def test_adult_pytorch_preprocessing(adult_training, adult_test, model_path):
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_adult_pytorch_preprocessing_and_data_cleaning(
-    adult_training, adult_test, data_cleaning, model_path
+def test_adult_pytorch_preprocessing_and_data_preparation(
+    adult_training, adult_test, data_preparation, model_path
 ):
     x_training, y_training = adult_training
     x_test, _ = adult_test
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_train_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
     x_train_transformed = torch.Tensor(x_train_transformed.todense())
 
     y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
@@ -253,7 +254,7 @@ def test_adult_pytorch_preprocessing_and_data_cleaning(
 
     def preprocessing_function(x_data):
         x_transformed = x_preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed.todense())
+        return x_transformed.todense()
 
     model = AdultModel(x_train_transformed.shape[1])
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -261,13 +262,20 @@ def test_adult_pytorch_preprocessing_and_data_cleaning(
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
-    cbw.save_model(model_path, model, preprocessing_function, data_cleaning, zip=False)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=data_preparation,
+        zip=False,
+    )
     loaded_model = cbw.load_model(model_path)
 
-    x_test_cleaned = data_cleaning(x_test)
-    x_test_transformed = preprocessing_function(x_test_cleaned)
+    x_test_prepared = data_preparation(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
 
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
