@@ -60,8 +60,8 @@ def x_and_y_preprocessing(x_dataframe):
 
 
 @pytest.fixture()
-def data_cleaning():
-    def cleaning(x):
+def data_preparation():
+    def preparation(x):
         education_map = {
             "10th": "Dropout",
             "11th": "Dropout",
@@ -141,7 +141,7 @@ def data_cleaning():
         transformed_x = x.replace(mapping)
         return transformed_x
 
-    return cleaning
+    return preparation
 
 
 @pytest.mark.parametrize(
@@ -165,13 +165,15 @@ def test_adult_sklearn_preprocessing(sklearn_model, adult_training, adult_test, 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
     print(dir(cbw))
-    cbw.save_model(tmp_model_path, fitted_model, x_preprocessor, zip=False)
+    cbw.save_model(
+        tmp_model_path, fitted_model, preprocessing=x_preprocessor, zip=False
+    )
 
     loaded_model = cbw.load_model(tmp_model_path)
     original_model_predictions = fitted_model.predict_proba(
         x_preprocessor.transform(x_test)
     )
-    loaded_model_predictions = loaded_model.predict(x_test)
+    loaded_model_predictions = loaded_model.predict_proba(x_test)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
@@ -185,95 +187,99 @@ def test_adult_sklearn_preprocessing(sklearn_model, adult_training, adult_test, 
         (ensemble.RandomForestClassifier()),
     ],
 )
-def test_adult_sklearn_preprocessing_and_data_cleaning(
-    sklearn_model, adult_training, adult_test, data_cleaning, tmpdir
+def test_adult_sklearn_preprocessing_and_data_preparation(
+    sklearn_model, adult_training, adult_test, data_preparation, tmpdir
 ):
     x_training, y_training = adult_training
     x_test, y_test = adult_test
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_transformed = x_preprocessor.fit_transform(x_training_prepared)
     y_transformed = y_encoder.fit_transform(y_training)
 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
     cbw.save_model(
-        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+        tmp_model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
     )
 
     loaded_model = cbw.load_model(tmp_model_path)
-    original_model_predictions = fitted_model.predict_proba(
-        x_preprocessor.transform(data_cleaning(x_test))
+    original_model_predictions = fitted_model.predict(
+        x_preprocessor.transform(data_preparation(x_test))
     )
     loaded_model_predictions = loaded_model.predict(x_test)
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_adult_sklearn_get_cleaned_data(
-    adult_training, adult_test, data_cleaning, tmpdir
+def test_adult_sklearn_get_prepared_data(
+    adult_training, adult_test, data_preparation, tmpdir
 ):
     x_training, y_training = adult_training
     x_test, y_test = adult_test
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_transformed = x_preprocessor.fit_transform(x_training_prepared)
     y_transformed = y_encoder.fit_transform(y_training)
 
     fitted_model = tree.DecisionTreeClassifier().fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
     cbw.save_model(
-        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+        tmp_model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
     )
 
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(tmp_model_path)
+    loaded_model = cbw.load_model(tmp_model_path)
 
-    x_test_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x_test)
-    x_test_cleaned = data_cleaning(x_test)
+    x_test_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x_test)
+    x_test_prepared = data_preparation(x_test)
 
     pd.testing.assert_frame_equal(
-        x_test_cleaned, x_test_cleaned_by_loaded_data_cleaning
+        x_test_prepared, x_test_prepared_by_loaded_data_preparation
     )
 
 
 def test_adult_sklearn_get_preprocessed_data(
-    adult_training, adult_test, data_cleaning, tmpdir
+    adult_training, adult_test, data_preparation, tmpdir
 ):
     x_training, y_training = adult_training
     x_test, y_test = adult_test
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_transformed = x_preprocessor.fit_transform(x_training_prepared)
     y_transformed = y_encoder.fit_transform(y_training)
 
     fitted_model = tree.DecisionTreeClassifier().fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
     cbw.save_model(
-        tmp_model_path, fitted_model, x_preprocessor, data_cleaning, zip=False
+        tmp_model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
     )
 
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(tmp_model_path)
+    loaded_model = cbw.load_model(tmp_model_path)
 
-    x_test_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x_test)
-    x_test_transformed_by_loaded_preprocessing = loaded_preprocessing(
-        x_test_cleaned_by_loaded_data_cleaning
+    x_test_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x_test)
+    x_test_transformed_by_loaded_preprocessing = loaded_model.preprocess_data(
+        x_test_prepared_by_loaded_data_preparation
     )
 
-    x_test_cleaned = data_cleaning(x_test)
-    x_test_transformed = x_preprocessor.transform(x_test_cleaned)
+    x_test_prepared = data_preparation(x_test)
+    x_test_transformed = x_preprocessor.transform(x_test_prepared)
 
     np.testing.assert_array_equal(
         x_test_transformed.todense(),

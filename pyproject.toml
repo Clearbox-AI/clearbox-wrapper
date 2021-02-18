@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "clearbox-wrapper"
-version = "0.2.4"
+version = "0.3.0"
 description = "An agnostic wrapper for the most common frameworks of ML models."
 authors = ["Clearbox AI <info@clearbox.ai>"]
 license = "Apache-2.0"
@@ -11,7 +11,12 @@ keywords = ["ML wrapper", "machine learning"]
 
 [tool.poetry.dependencies]
 python = "^3.6.2"
-mlflow = "^1.11.0"
+loguru = "^0.5.3"
+pandas = "^1"
+numpy = "^1.19.0"
+cloudpickle = "^1.6.0"
+PyYAML = "^5.4.1"
+dill = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.8.4"

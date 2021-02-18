@@ -38,8 +38,8 @@ def adult_test():
 
 
 @pytest.fixture()
-def data_cleaning():
-    def cleaning(x):
+def data_preparation():
+    def preparation(x):
         education_map = {
             "10th": "Dropout",
             "11th": "Dropout",
@@ -119,7 +119,7 @@ def data_cleaning():
         transformed_x = x.replace(mapping)
         return transformed_x
 
-    return cleaning
+    return preparation
 
 
 def x_and_y_preprocessing(x_dataframe):
@@ -166,27 +166,27 @@ def test_adult_xgboost_preprocessing(adult_training, adult_test, model_path):
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor, zip=False)
+    cbw.save_model(model_path, fitted_model, preprocessing=x_preprocessor, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = x_preprocessor.transform(x_test)
     original_model_predictions = fitted_model.predict_proba(x_test_transformed)
-    loaded_model_predictions = loaded_model.predict(x_test)
+    loaded_model_predictions = loaded_model.predict_proba(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_adult_xgboost_preprocessing_and_data_cleaning(
-    adult_training, adult_test, data_cleaning, model_path
+def test_adult_xgboost_preprocessing_and_data_preparation(
+    adult_training, adult_test, data_preparation, model_path
 ):
     x_training, y_training = adult_training
     x_test, _ = adult_test
     x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
 
-    x_training_cleaned = data_cleaning(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_cleaned)
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
 
-    x_transformed = x_preprocessor.fit_transform(x_training_cleaned)
+    x_transformed = x_preprocessor.fit_transform(x_training_prepared)
     y_transformed = y_encoder.fit_transform(y_training)
 
     model = xgb.XGBClassifier(
@@ -200,13 +200,19 @@ def test_adult_xgboost_preprocessing_and_data_cleaning(
     )
 
     fitted_model = model.fit(x_transformed, y_transformed)
-    cbw.save_model(model_path, fitted_model, x_preprocessor, data_cleaning, zip=False)
+    cbw.save_model(
+        model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        zip=False,
+    )
     loaded_model = cbw.load_model(model_path)
 
-    x_test_cleaned = data_cleaning(x_test)
-    x_test_transformed = x_preprocessor.transform(x_test_cleaned)
+    x_test_prepared = data_preparation(x_test)
+    x_test_transformed = x_preprocessor.transform(x_test_prepared)
 
-    original_model_predictions = fitted_model.predict_proba(x_test_transformed)
+    original_model_predictions = fitted_model.predict(x_test_transformed)
     loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)

@@ -73,6 +73,8 @@ def iris_pytorch_model():
         nn.Linear(H, D_out),
         nn.Softmax(dim=0),
     )
+    device = torch.device("cpu")
+    model.to(device)
     return model
 
 
@@ -97,14 +99,13 @@ def iris_pytorch_model_training(model, x_train, y_train):
 def test_iris_pytorch_no_preprocessing(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
-
     x_train, y_train = iris_training
     x_test, _ = iris_test
 
     x_train = torch.Tensor(x_train.values)
     y_train = torch.Tensor(y_train.values)
 
-    x_test = torch.Tensor(x_test.values)
+    x_test_tensor = torch.Tensor(x_test.values)
 
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_train, y_train)
@@ -112,8 +113,8 @@ def test_iris_pytorch_no_preprocessing(
     cbw.save_model(model_path, model, zip=False)
     loaded_model = cbw.load_model(model_path)
 
-    original_model_predictions = model(x_test).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    original_model_predictions = model(x_test_tensor).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -137,21 +138,22 @@ def test_iris_pytorch_preprocessing(
 
     x_transformed = sk_transformer.fit_transform(x_train)
     x_transformed = torch.Tensor(x_transformed)
-    y_train = torch.Tensor(y_train.values)
+    y_train_tensor = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = sk_transformer.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_transformed, y_train)
+    iris_pytorch_model_training(model, x_transformed, y_train_tensor)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -168,17 +170,18 @@ def test_iris_pytorch_preprocessing_with_function_transformer(
 
     def preprocessing_function(x_data):
         x_transformed = sk_function_transformer.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -195,17 +198,18 @@ def test_iris_pytorch_preprocessing_with_custom_transformer(
 
     def preprocessing_function(x_data):
         x_transformed = custom_transformer(x_data)
-        return torch.Tensor(x_transformed.values)
+        return x_transformed
 
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed.values)
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
@@ -220,7 +224,7 @@ def test_iris_pytorch_preprocessing_with_custom_transformer(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_pytorch_data_cleaning_and_preprocessing(
+def test_iris_pytorch_data_preparation_and_preprocessing(
     preprocessor,
     add_value_to_column_transformer,
     iris_training,
@@ -231,15 +235,15 @@ def test_iris_pytorch_data_cleaning_and_preprocessing(
     x_train, y_train = iris_training
     x_test, _ = iris_test
 
-    x_cleaned = add_value_to_column_transformer(x_train)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
     x_transformed = torch.Tensor(x_transformed)
     y_train = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
@@ -247,22 +251,23 @@ def test_iris_pytorch_data_cleaning_and_preprocessing(
     cbw.save_model(
         model_path,
         model,
-        preprocessing_function,
-        add_value_to_column_transformer,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
         zip=False,
     )
     loaded_model = cbw.load_model(model_path)
 
-    x_test_cleaned = add_value_to_column_transformer(x_test)
-    x_test_transformed = preprocessing_function(x_test_cleaned)
+    x_test_prepared = add_value_to_column_transformer(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
 
     original_model_predictions = model(x_test_transformed).detach().numpy()
-    loaded_model_predictions = loaded_model.predict(x_test).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_pytorch_data_cleaning_without_preprocessing(
+def test_iris_pytorch_data_preparation_without_preprocessing(
     add_value_to_column_transformer,
     iris_training,
     iris_test,
@@ -279,14 +284,17 @@ def test_iris_pytorch_data_cleaning_without_preprocessing(
 
     def preprocessing_function(x_data):
         x_transformed = sk_transformer.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
     with pytest.raises(ValueError):
         cbw.save_model(
-            model_path, model, data_cleaning=add_value_to_column_transformer, zip=False
+            model_path,
+            model,
+            data_preparation=add_value_to_column_transformer,
+            zip=False,
         )
 
 
@@ -295,19 +303,19 @@ def test_iris_pytorch_load_preprocessing_without_preprocessing(
 ):
     x_train, y_train = iris_training
 
-    x_train = torch.Tensor(x_train.values)
+    x_train_tensor = torch.Tensor(x_train.values)
     y_train = torch.Tensor(y_train.values)
 
     model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_train, y_train)
+    iris_pytorch_model_training(model, x_train_tensor, y_train)
 
     cbw.save_model(model_path, model, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        loaded_model.preprocess_data(x_train)
 
-    with pytest.raises(FileNotFoundError):
-        loaded_model, preprocessing = cbw.load_model_preprocessing(model_path)
 
-
-def test_iris_pytorch_load_data_cleaning_without_data_cleaning(
+def test_iris_pytorch_load_data_preparation_without_data_preparation(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
     x_train, y_train = iris_training
@@ -325,14 +333,10 @@ def test_iris_pytorch_load_data_cleaning_without_data_cleaning(
     model = iris_pytorch_model
     iris_pytorch_model_training(model, x_transformed, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
-
-    with pytest.raises(FileNotFoundError):
-        (
-            loaded_model,
-            preprocessing,
-            data_cleaning,
-        ) = cbw.load_model_preprocessing_data_cleaning(model_path)
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        loaded_model.prepare_data(x_train)
 
 
 @pytest.mark.parametrize(
@@ -351,26 +355,20 @@ def test_iris_pytorch_get_preprocessed_data(
     x_train, y_train = iris_training
 
     x_transformed = preprocessor.fit_transform(x_train)
-    x_transformed = torch.Tensor(x_transformed)
+    x_transformed_tensor = torch.Tensor(x_transformed)
     y_train = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_transformed, y_train)
+    iris_pytorch_model_training(model, x_transformed_tensor, y_train)
 
-    cbw.save_model(model_path, model, preprocessing_function, zip=False)
-    loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(model_path)
-
-    x_transformed_by_loaded_preprocessing = (
-        loaded_preprocessing(x_train).detach().numpy()
-    )
-    x_transformed_original = x_transformed.detach().numpy()
-    np.testing.assert_array_equal(
-        x_transformed_original, x_transformed_by_loaded_preprocessing
-    )
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    x_transformed_by_loaded_preprocessing = loaded_model.preprocess_data(x_train)
+    np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
 
 
 @pytest.mark.parametrize(
@@ -383,7 +381,7 @@ def test_iris_pytorch_get_preprocessed_data(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_pytorch_get_cleaned_data(
+def test_iris_pytorch_get_prepared_data(
     preprocessor,
     add_value_to_column_transformer,
     iris_training,
@@ -393,35 +391,30 @@ def test_iris_pytorch_get_cleaned_data(
 ):
     x_train, y_train = iris_training
 
-    x_cleaned = add_value_to_column_transformer(x_train)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
-    x_transformed = torch.Tensor(x_transformed)
+    x_transformed_tensor = torch.Tensor(x_transformed)
     y_train = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_transformed, y_train)
+    iris_pytorch_model_training(model, x_transformed_tensor, y_train)
 
     cbw.save_model(
         model_path,
         model,
-        preprocessing_function,
-        add_value_to_column_transformer,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
         zip=False,
     )
 
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(model_path)
-
-    x_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x_train)
-    np.testing.assert_array_equal(x_cleaned, x_cleaned_by_loaded_data_cleaning)
+    loaded_model = cbw.load_model(model_path)
+    x_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x_train)
+    np.testing.assert_array_equal(x_prepared, x_prepared_by_loaded_data_preparation)
 
 
 @pytest.mark.parametrize(
@@ -434,7 +427,7 @@ def test_iris_pytorch_get_cleaned_data(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_pytorch_get_cleaned_and_processed_data(
+def test_iris_pytorch_get_prepared_and_processed_data(
     preprocessor,
     add_value_to_column_transformer,
     iris_training,
@@ -444,44 +437,155 @@ def test_iris_pytorch_get_cleaned_and_processed_data(
 ):
     x_train, y_train = iris_training
 
-    x_cleaned = add_value_to_column_transformer(x_train)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
-    x_transformed = torch.Tensor(x_transformed)
+    x_transformed_tensor = torch.Tensor(x_transformed)
     y_train = torch.Tensor(y_train.values)
 
     def preprocessing_function(x_data):
         x_transformed = preprocessor.transform(x_data)
-        return torch.Tensor(x_transformed)
+        return x_transformed
 
     model = iris_pytorch_model
-    iris_pytorch_model_training(model, x_transformed, y_train)
+    iris_pytorch_model_training(model, x_transformed_tensor, y_train)
 
     cbw.save_model(
         model_path,
         model,
-        preprocessing_function,
-        add_value_to_column_transformer,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
         zip=False,
     )
 
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(model_path)
-
-    x_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x_train)
-    x_transformed_by_loaded_preprocessing = loaded_preprocessing(
-        x_cleaned_by_loaded_data_cleaning
+    loaded_model = cbw.load_model(model_path)
+    x_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x_train)
+    x_transformed_by_loaded_preprocessing = loaded_model.preprocess_data(
+        x_prepared_by_loaded_data_preparation
     )
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
+
+
+@pytest.mark.parametrize(
+    "preprocessor",
+    [
+        (sk_preprocessing.StandardScaler()),
+        (sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50)),
+        (sk_preprocessing.KBinsDiscretizer(n_bins=2, encode="ordinal")),
+        (sk_preprocessing.RobustScaler()),
+        (sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_pytorch_predict_without_preprocessing(
+    preprocessor,
+    add_value_to_column_transformer,
+    iris_training,
+    iris_test,
+    iris_pytorch_model,
+    model_path,
+):
+    x_train, y_train = iris_training
+    x_test, _ = iris_test
+
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+
+    x_transformed = torch.Tensor(x_transformed)
+    y_train = torch.Tensor(y_train.values)
+
+    def preprocessing_function(x_data):
+        x_transformed = preprocessor.transform(x_data)
+        return x_transformed
+
+    model = iris_pytorch_model
+    iris_pytorch_model_training(model, x_transformed, y_train)
+
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(model_path)
+
+    x_test_prepared = add_value_to_column_transformer(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
+
+    original_model_predictions = model(x_test_transformed).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test, preprocess=False)
+
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        original_model_predictions,
+        loaded_model_predictions,
+    )
+
+
+@pytest.mark.parametrize(
+    "preprocessor",
+    [
+        (sk_preprocessing.StandardScaler()),
+        (sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50)),
+        (sk_preprocessing.KBinsDiscretizer(n_bins=2, encode="ordinal")),
+        (sk_preprocessing.RobustScaler()),
+        (sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_pytorch_predict_without_data_preparation(
+    preprocessor,
+    add_value_to_column_transformer,
+    iris_training,
+    iris_test,
+    iris_pytorch_model,
+    model_path,
+):
+    x_train, y_train = iris_training
+    x_test, _ = iris_test
+
+    x_prepared = add_value_to_column_transformer(x_train)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+
+    x_transformed = torch.Tensor(x_transformed)
+    y_train = torch.Tensor(y_train.values)
+
+    def preprocessing_function(x_data):
+        x_transformed = preprocessor.transform(x_data)
+        return x_transformed
+
+    model = iris_pytorch_model
+    iris_pytorch_model_training(model, x_transformed, y_train)
+
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=add_value_to_column_transformer,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(model_path)
+
+    x_test_prepared = add_value_to_column_transformer(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
+
+    original_model_predictions = model(x_test_transformed).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test, prepare_data=False)
+
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        original_model_predictions,
+        loaded_model_predictions,
+    )
 
 
 def test_iris_pytorch_conda_env(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
-    import cloudpickle
+    import dill
 
     x_train, y_train = iris_training
 
@@ -500,7 +604,7 @@ def test_iris_pytorch_conda_env(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     pytorch_version = torch.__version__
-    cloudpickle_version = cloudpickle.__version__
+    dill_version = dill.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -508,8 +612,7 @@ def test_iris_pytorch_conda_env(
         "pip",
         {
             "pip": [
-                "mlflow",
-                "cloudpickle=={}".format(cloudpickle_version),
+                "dill=={}".format(dill_version),
                 "torch=={}".format(pytorch_version),
             ]
         },
@@ -521,7 +624,7 @@ def test_iris_pytorch_conda_env(
 def test_iris_pytorch_conda_env_additional_deps(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
-    import cloudpickle
+    import dill
 
     x_train, y_train = iris_training
 
@@ -547,7 +650,7 @@ def test_iris_pytorch_conda_env_additional_deps(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     pytorch_version = torch.__version__
-    cloudpickle_version = cloudpickle.__version__
+    dill_version = dill.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -555,8 +658,7 @@ def test_iris_pytorch_conda_env_additional_deps(
         "pip",
         {
             "pip": [
-                "mlflow",
-                "cloudpickle=={}".format(cloudpickle_version),
+                "dill=={}".format(dill_version),
                 "keras==1.6.0",
                 "fake_package==2.1.0",
                 "fastapi==0.52.1",

@@ -2,7 +2,8 @@ import tempfile
 
 import nox
 
-nox.options.sessions = "lint", "mypy", "tests"
+# nox.options.sessions = "lint", "mypy", "tests"
+nox.options.sessions = "lint", "tests"
 locations = "clearbox_wrapper", "tests", "noxfile.py"
 
 

@@ -95,7 +95,7 @@ def test_iris_keras_preprocessing(sk_transformer, iris_data, keras_model, model_
 
     model = keras_model
     model.fit(x_transformed, y)
-    cbw.save_model(model_path, model, sk_transformer, zip=False)
+    cbw.save_model(model_path, model, preprocessing=sk_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = model.predict(x_transformed)
@@ -111,7 +111,7 @@ def test_iris_keras_preprocessing_with_function_transformer(
 
     model = keras_model
     model.fit(x_transformed, y)
-    cbw.save_model(model_path, model, sk_function_transformer, zip=False)
+    cbw.save_model(model_path, model, preprocessing=sk_function_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = model.predict(x_transformed)
@@ -127,7 +127,7 @@ def test_iris_keras_preprocessing_with_custom_transformer(
 
     model = keras_model
     model.fit(x_transformed, y)
-    cbw.save_model(model_path, model, custom_transformer, zip=False)
+    cbw.save_model(model_path, model, preprocessing=custom_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = model.predict(x_transformed)
@@ -145,12 +145,12 @@ def test_iris_keras_preprocessing_with_custom_transformer(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_keras_data_cleaning_and_preprocessing(
+def test_iris_keras_data_preparation_and_preprocessing(
     preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
-    x_cleaned = drop_column_transformer(x)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = drop_column_transformer(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
     model = Sequential()
     model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
@@ -161,7 +161,13 @@ def test_iris_keras_data_cleaning_and_preprocessing(
     )
     model.fit(x_transformed, y)
 
-    cbw.save_model(model_path, model, preprocessor, drop_column_transformer, zip=False)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessor,
+        data_preparation=drop_column_transformer,
+        zip=False,
+    )
 
     loaded_model = cbw.load_model(model_path)
     original_model_predictions = model.predict(x_transformed)
@@ -169,7 +175,7 @@ def test_iris_keras_data_cleaning_and_preprocessing(
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
 
 
-def test_iris_keras_data_cleaning_without_preprocessing(
+def test_iris_keras_data_preparation_without_preprocessing(
     iris_data, keras_model, model_path
 ):
     x, y = iris_data
@@ -181,7 +187,7 @@ def test_iris_keras_data_cleaning_without_preprocessing(
 
     with pytest.raises(ValueError):
         cbw.save_model(
-            model_path, model, data_cleaning=drop_column_transformer, zip=False
+            model_path, model, data_preparation=drop_column_transformer, zip=False
         )
 
 
@@ -192,12 +198,12 @@ def test_iris_keras_load_preprocessing_without_preprocessing(
     model = keras_model
     model.fit(x, y)
     cbw.save_model(model_path, model, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        loaded_model.preprocess_data(x)
 
-    with pytest.raises(FileNotFoundError):
-        loaded_model, preprocessing = cbw.load_model_preprocessing(model_path)
 
-
-def test_iris_keras_load_data_cleaning_without_data_cleaning(
+def test_iris_keras_load_data_preparation_without_data_preparation(
     iris_data, keras_model, model_path
 ):
     x, y = iris_data
@@ -206,14 +212,10 @@ def test_iris_keras_load_data_cleaning_without_data_cleaning(
 
     model = keras_model
     model.fit(x_transformed, y)
-    cbw.save_model(model_path, model, sk_transformer, zip=False)
-
-    with pytest.raises(FileNotFoundError):
-        (
-            loaded_model,
-            preprocessing,
-            data_cleaning,
-        ) = cbw.load_model_preprocessing_data_cleaning(model_path)
+    cbw.save_model(model_path, model, preprocessing=sk_transformer, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        loaded_model.prepare_data(x)
 
 
 @pytest.mark.parametrize(
@@ -234,10 +236,9 @@ def test_iris_keras_get_preprocessed_data(
 
     model = keras_model
     model.fit(x_transformed, y)
-    cbw.save_model(model_path, model, preprocessor, zip=False)
-
-    loaded_model, loaded_preprocessing = cbw.load_model_preprocessing(model_path)
-    x_transformed_by_loaded_preprocessing = loaded_preprocessing(x)
+    cbw.save_model(model_path, model, preprocessing=preprocessor, zip=False)
+    loaded_model = cbw.load_model(model_path)
+    x_transformed_by_loaded_preprocessing = loaded_model.preprocess_data(x)
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
 
 
@@ -251,12 +252,12 @@ def test_iris_keras_get_preprocessed_data(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_keras_get_cleaned_data(
+def test_iris_keras_get_prepared_data(
     preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
-    x_cleaned = drop_column_transformer(x)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = drop_column_transformer(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
     model = Sequential()
     model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
@@ -267,16 +268,16 @@ def test_iris_keras_get_cleaned_data(
     )
     model.fit(x_transformed, y)
 
-    cbw.save_model(model_path, model, preprocessor, drop_column_transformer, zip=False)
-
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(model_path)
-
-    x_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x)
-    np.testing.assert_array_equal(x_cleaned, x_cleaned_by_loaded_data_cleaning)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessor,
+        data_preparation=drop_column_transformer,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(model_path)
+    x_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x)
+    np.testing.assert_array_equal(x_prepared, x_prepared_by_loaded_data_preparation)
 
 
 @pytest.mark.parametrize(
@@ -289,12 +290,12 @@ def test_iris_keras_get_cleaned_data(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_iris_keras_get_cleaned_and_processed_data(
+def test_iris_keras_get_prepared_and_processed_data(
     preprocessor, drop_column_transformer, iris_data, model_path
 ):
     x, y = iris_data
-    x_cleaned = drop_column_transformer(x)
-    x_transformed = preprocessor.fit_transform(x_cleaned)
+    x_prepared = drop_column_transformer(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
 
     model = Sequential()
     model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
@@ -304,24 +305,106 @@ def test_iris_keras_get_cleaned_and_processed_data(
         optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
     )
     model.fit(x_transformed, y)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessor,
+        data_preparation=drop_column_transformer,
+        zip=False,
+    )
 
-    cbw.save_model(model_path, model, preprocessor, drop_column_transformer, zip=False)
-
-    (
-        loaded_model,
-        loaded_preprocessing,
-        loaded_data_cleaning,
-    ) = cbw.load_model_preprocessing_data_cleaning(model_path)
-
-    x_cleaned_by_loaded_data_cleaning = loaded_data_cleaning(x)
-    x_transformed_by_loaded_preprocessing = loaded_preprocessing(
-        x_cleaned_by_loaded_data_cleaning
+    loaded_model = cbw.load_model(model_path)
+    x_prepared_by_loaded_data_preparation = loaded_model.prepare_data(x)
+    x_transformed_by_loaded_preprocessing = loaded_model.preprocess_data(
+        x_prepared_by_loaded_data_preparation
     )
     np.testing.assert_array_equal(x_transformed, x_transformed_by_loaded_preprocessing)
+
+
+@pytest.mark.parametrize(
+    "preprocessor",
+    [
+        (sk_preprocessing.StandardScaler()),
+        (sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50)),
+        (sk_preprocessing.KBinsDiscretizer(n_bins=2, encode="ordinal")),
+        (sk_preprocessing.RobustScaler()),
+        (sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_keras_predict_without_preprocessing(
+    preprocessor, drop_column_transformer, iris_data, model_path
+):
+    x, y = iris_data
+    x_prepared = drop_column_transformer(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+
+    model = Sequential()
+    model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
+    model.add(Dense(3, activation="softmax"))
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    model.fit(x_transformed, y)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessor,
+        data_preparation=drop_column_transformer,
+        zip=False,
+    )
+
+    loaded_model = cbw.load_model(model_path)
+    original_model_predictions = model.predict(x_transformed)
+    loaded_model_predictions = loaded_model.predict(x, preprocess=False)
+    np.testing.assert_raises(
+        AssertionError,
+        np.testing.assert_array_equal,
+        original_model_predictions,
+        loaded_model_predictions,
+    )
+
+
+@pytest.mark.parametrize(
+    "preprocessor",
+    [
+        (sk_preprocessing.StandardScaler()),
+        (sk_preprocessing.QuantileTransformer(random_state=0, n_quantiles=50)),
+        (sk_preprocessing.KBinsDiscretizer(n_bins=2, encode="ordinal")),
+        (sk_preprocessing.RobustScaler()),
+        (sk_preprocessing.MaxAbsScaler()),
+    ],
+)
+def test_iris_keras_predict_without_data_preparation(
+    preprocessor, drop_column_transformer, iris_data, model_path
+):
+    x, y = iris_data
+    x_prepared = drop_column_transformer(x)
+    x_transformed = preprocessor.fit_transform(x_prepared)
+
+    model = Sequential()
+    model.add(Dense(8, input_dim=x_transformed.shape[1], activation="relu"))
+    model.add(Dense(3, activation="softmax"))
+
+    model.compile(
+        optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    )
+    model.fit(x_transformed, y)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessor,
+        data_preparation=drop_column_transformer,
+        zip=False,
+    )
+
+    loaded_model = cbw.load_model(model_path)
+    with pytest.raises(ValueError):
+        loaded_model.predict(x, prepare_data=False)
 
 
 def test_iris_keras_conda_env(iris_data, keras_model, model_path):
-    import cloudpickle
+    import dill
     import tensorflow
 
     x, y = iris_data
@@ -337,7 +420,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     tf_version = tensorflow.__version__
-    cloudpickle_version = cloudpickle.__version__
+    dill_version = dill.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -345,8 +428,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
         "pip",
         {
             "pip": [
-                "mlflow",
-                "cloudpickle=={}".format(cloudpickle_version),
+                "dill=={}".format(dill_version),
                 "tensorflow=={}".format(tf_version),
             ]
         },
@@ -356,7 +438,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
 
 
 def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path):
-    import cloudpickle
+    import dill
     import tensorflow
 
     x, y = iris_data
@@ -379,7 +461,7 @@ def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     tf_version = tensorflow.__version__
-    cloudpickle_version = cloudpickle.__version__
+    dill_version = dill.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -387,8 +469,7 @@ def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path
         "pip",
         {
             "pip": [
-                "mlflow",
-                "cloudpickle=={}".format(cloudpickle_version),
+                "dill=={}".format(dill_version),
                 "torch==1.6.0",
                 "fake_package=2.1.0",
                 "fastapi==0.52.1",
