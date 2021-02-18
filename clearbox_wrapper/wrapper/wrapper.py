@@ -19,6 +19,7 @@ from clearbox_wrapper.preprocessing import (
     load_serialized_preprocessing,
     Preprocessing,
 )
+from clearbox_wrapper.pytorch import save_pytorch_model
 from clearbox_wrapper.signature import infer_signature
 from clearbox_wrapper.sklearn import save_sklearn_model
 from clearbox_wrapper.utils import (
@@ -261,7 +262,6 @@ def save_model(
 
     logger.warning(model_super_classes)
     if any("sklearn" in super_class for super_class in model_super_classes):
-        logger.debug("E' un modello Sklearn")
         save_sklearn_model(
             model,
             path,
@@ -272,7 +272,6 @@ def save_model(
             data_preparation_subpath=saved_data_preparation_subpath,
         )
     elif any("xgboost" in super_class for super_class in model_super_classes):
-        logger.debug("E' un modello Xgboost")
         save_xgboost_model(
             model,
             path,
@@ -283,8 +282,17 @@ def save_model(
             data_preparation_subpath=saved_data_preparation_subpath,
         )
     elif any("keras" in super_class for super_class in model_super_classes):
-        logger.debug("E' un modello Keras")
         save_keras_model(
+            model,
+            path,
+            conda_env=conda_env,
+            mlmodel=mlmodel,
+            add_clearbox_flavor=True,
+            preprocessing_subpath=saved_preprocessing_subpath,
+            data_preparation_subpath=saved_data_preparation_subpath,
+        )
+    elif any("torch" in super_class for super_class in model_super_classes):
+        save_pytorch_model(
             model,
             path,
             conda_env=conda_env,

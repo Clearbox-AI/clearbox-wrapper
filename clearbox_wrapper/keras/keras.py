@@ -3,7 +3,6 @@ import importlib
 import os
 from typing import Any, Dict, Optional, Union
 
-from loguru import logger
 import pandas as pd
 import yaml
 
@@ -82,21 +81,6 @@ def save_keras_model(
     custom_objects=None,
     **kwargs
 ):
-    logger.debug(
-        "Sono save_model di keras, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, signature={3}".format(keras_model, path, conda_env, signature)
-    )
-
-    logger.debug(
-        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, signature={3}".format(
-            type(keras_model),
-            type(path),
-            type(conda_env),
-            type(signature),
-        )
-    )
-
     if keras_module is None:
 
         def _is_plain_keras(model):

@@ -109,23 +109,6 @@ def save_sklearn_model(
     ClearboxWrapperException
         If unrecognized serialization format or model path already exists.
     """
-    logger.debug(
-        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, serialization_format={3}, signature={4}".format(
-            sk_model, path, conda_env, serialization_format, signature
-        )
-    )
-
-    logger.debug(
-        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, serialization_format={3}, signature={4}".format(
-            type(sk_model),
-            type(path),
-            type(conda_env),
-            type(serialization_format),
-            type(signature),
-        )
-    )
     import sklearn
 
     if serialization_format not in SUPPORTED_SERIALIZATION_FORMATS:
@@ -143,17 +126,6 @@ def save_sklearn_model(
     if mlmodel is None:
         mlmodel = Model()
 
-    logger.debug(
-        "Sono save_model di sklearn, ho creato un nuovo Model: __str__()={0}, to_dict()={1},"
-        " to_yaml()={2}, to_json={3}, model={4}".format(
-            mlmodel.__str__(),
-            mlmodel.to_dict(),
-            mlmodel.to_yaml(),
-            mlmodel.to_json(),
-            mlmodel,
-        )
-    )
-
     if signature is not None:
         mlmodel.signature = signature
 
@@ -163,13 +135,6 @@ def save_sklearn_model(
         else "model.pkl"
     )
 
-    logger.debug(
-        "Sono save_model di sklearn, sto per chiamare _save_model coi seguenti parametri:"
-        " sk_model={0}, output_path={1},"
-        " serialization_format={2}".format(
-            sk_model, os.path.join(path, model_data_subpath), serialization_format
-        )
-    )
     _serialize_and_save_model(
         sk_model=sk_model,
         output_path=os.path.join(path, model_data_subpath),
@@ -186,24 +151,12 @@ def save_sklearn_model(
     elif not isinstance(conda_env, dict):
         with open(conda_env, "r") as f:
             conda_env = yaml.safe_load(f)
-    logger.debug(
-        "conda_env type: {0}, conda_env: {1}".format(type(conda_env), conda_env)
-    )
+
     with open(os.path.join(path, conda_env_subpath), "w") as f:
         yaml.safe_dump(conda_env, stream=f, default_flow_style=False)
 
     # `PyFuncModel` only works for sklearn models that define `predict()`.
     if hasattr(sk_model, "predict"):
-        logger.debug(
-            "Sono save_model di sklearn, sto per chiamare att_to_model coi seguenti parametri:"
-            " wrapped_model={0}, loader_module={1},"
-            " model_path={2}, env={3}".format(
-                mlmodel,
-                "clearbox_wrapper.sklearn",
-                model_data_subpath,
-                conda_env_subpath,
-            )
-        )
         pyfunc.add_pyfunc_flavor_to_model(
             mlmodel,
             loader_module="clearbox_wrapper.sklearn",
@@ -221,16 +174,12 @@ def save_sklearn_model(
             data_preparation=data_preparation_subpath,
         )
 
-    logger.debug("Wrapped model after add_to_model: {}".format(mlmodel))
-
     mlmodel.add_flavor(
         FLAVOR_NAME,
         model_path=model_data_subpath,
         sklearn_version=sklearn.__version__,
         serialization_format=serialization_format,
     )
-
-    logger.debug("Wrapped model after second add_to_model: {}".format(mlmodel))
 
     mlmodel.save(os.path.join(path, MLMODEL_FILE_NAME))
 
@@ -255,7 +204,6 @@ def _serialize_and_save_model(
     ClearboxWrapperException
         Unrecognized serialization format.
     """
-    logger.debug("Sono _save_model di sklearn, sto per salvare il modello serializzato")
 
     with open(output_path, "wb") as out:
         if serialization_format == SERIALIZATION_FORMAT_PICKLE:
@@ -352,9 +300,7 @@ def _load_pyfunc(model_path: str) -> Any:
     pyfunc_flavor_conf = _get_flavor_configuration(
         model_path=model_path, flavor_name=pyfunc.FLAVOR_NAME
     )
-    logger.debug("pyfunc_flavor_conf: {}".format(pyfunc_flavor_conf))
     serialized_model_path = os.path.join(model_path, pyfunc_flavor_conf["model_path"])
-    logger.debug("serialized_model_path: {}".format(serialized_model_path))
 
     return _load_serialized_model(
         serialized_model_path=serialized_model_path,
@@ -392,9 +338,7 @@ def _load_clearbox(model_path: str) -> Any:
     clearbox_flavor_conf = _get_flavor_configuration(
         model_path=model_path, flavor_name=cb_flavor_name
     )
-    logger.debug("clearbox_flavor_conf: {}".format(clearbox_flavor_conf))
     serialized_model_path = os.path.join(model_path, clearbox_flavor_conf["model_path"])
-    logger.debug("serialized_model_path: {}".format(serialized_model_path))
 
     return _load_serialized_model(
         serialized_model_path=serialized_model_path,

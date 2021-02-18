@@ -1,7 +1,6 @@
 import os
 from typing import Any, Dict, Optional, Union
 
-from loguru import logger
 import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
@@ -84,20 +83,6 @@ def save_xgboost_model(
     ClearboxWrapperException
         If unrecognized serialization format or model path already exists.
     """
-    logger.debug(
-        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, signature={3}".format(xgb_model, path, conda_env, signature)
-    )
-
-    logger.debug(
-        "Sono save_model di sklearn, con i seguenti parametri: sk_model={0}, path={1},"
-        " conda_env={2}, signature={3}".format(
-            type(xgb_model),
-            type(path),
-            type(conda_env),
-            type(signature),
-        )
-    )
     import xgboost as xgb
 
     if os.path.exists(path):
