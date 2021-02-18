@@ -86,7 +86,7 @@ def test_boston_xgboost_preprocessing(sk_transformer, boston_training_test, mode
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, sk_transformer, zip=False)
+    cbw.save_model(model_path, fitted_model, preprocessing=sk_transformer, zip=False)
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_transformer.transform(x_test)
@@ -103,7 +103,9 @@ def test_boston_xgboost_preprocessing_with_function_transformer(
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, sk_function_transformer, zip=False)
+    cbw.save_model(
+        model_path, fitted_model, preprocessing=sk_function_transformer, zip=False
+    )
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = sk_function_transformer.transform(x_test)
@@ -120,7 +122,9 @@ def test_boston_xgboost_preprocessing_with_custom_transformer(
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
-    cbw.save_model(model_path, fitted_model, custom_transformer, zip=False)
+    cbw.save_model(
+        model_path, fitted_model, preprocessing=custom_transformer, zip=False
+    )
 
     loaded_model = cbw.load_model(model_path)
     x_test_transformed = custom_transformer(x_test)
@@ -139,26 +143,26 @@ def test_boston_xgboost_preprocessing_with_custom_transformer(
         (sk_preprocessing.MaxAbsScaler()),
     ],
 )
-def test_boston_xgboost_data_cleaning_and_preprocessing(
+def test_boston_xgboost_data_preparation_and_preprocessing(
     preprocessor, add_value_to_column_transformer, boston_training_test, model_path
 ):
     x_train, x_test, y_train, _ = boston_training_test
-    x_train_cleaned = add_value_to_column_transformer(x_train)
-    x_train_transformed = preprocessor.fit_transform(x_train_cleaned)
+    x_train_prepared = add_value_to_column_transformer(x_train)
+    x_train_transformed = preprocessor.fit_transform(x_train_prepared)
 
     model = xgb.XGBRegressor()
     fitted_model = model.fit(x_train_transformed, y_train)
     cbw.save_model(
         model_path,
         fitted_model,
-        preprocessor,
-        add_value_to_column_transformer,
+        preprocessing=preprocessor,
+        data_preparation=add_value_to_column_transformer,
         zip=False,
     )
 
     loaded_model = cbw.load_model(model_path)
-    x_test_cleaned = add_value_to_column_transformer(x_test)
-    x_test_transformed = preprocessor.transform(x_test_cleaned)
+    x_test_prepared = add_value_to_column_transformer(x_test)
+    x_test_transformed = preprocessor.transform(x_test_prepared)
 
     original_model_predictions = fitted_model.predict(x_test_transformed)
     loaded_model_predictions = loaded_model.predict(x_test)
