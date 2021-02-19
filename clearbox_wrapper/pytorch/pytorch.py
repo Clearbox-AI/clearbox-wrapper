@@ -5,7 +5,7 @@ import posixpath
 import shutil
 from typing import Any, Dict, Optional, Union
 
-import dill
+import cloudpickle
 from loguru import logger
 import numpy as np
 import pandas as pd
@@ -32,7 +32,6 @@ _TORCH_STATE_DICT_FILE_NAME = "state_dict.pth"
 _PICKLE_MODULE_INFO_FILE_NAME = "pickle_module_info.txt"
 _EXTRA_FILES_KEY = "extra_files"
 _REQUIREMENTS_FILE_KEY = "requirements_file"
-dill.settings["recurse"] = True
 
 
 def get_default_pytorch_conda_env() -> Dict:
@@ -40,7 +39,7 @@ def get_default_pytorch_conda_env() -> Dict:
     import torchvision
 
     pip_deps = [
-        "dill=={}".format(dill.__version__),
+        "cloudpickle=={}".format(cloudpickle.__version__),
         "pytorch=={}".format(torch.__version__),
         "torchvision=={}".format(torchvision.__version__),
     ]

@@ -585,7 +585,7 @@ def test_iris_pytorch_predict_without_data_preparation(
 def test_iris_pytorch_conda_env(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
-    import dill
+    import cloudpickle
 
     x_train, y_train = iris_training
 
@@ -604,7 +604,7 @@ def test_iris_pytorch_conda_env(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     pytorch_version = torch.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -612,7 +612,7 @@ def test_iris_pytorch_conda_env(
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "torch=={}".format(pytorch_version),
             ]
         },
@@ -624,7 +624,7 @@ def test_iris_pytorch_conda_env(
 def test_iris_pytorch_conda_env_additional_deps(
     iris_training, iris_test, iris_pytorch_model, model_path
 ):
-    import dill
+    import cloudpickle
 
     x_train, y_train = iris_training
 
@@ -650,7 +650,7 @@ def test_iris_pytorch_conda_env_additional_deps(
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     pytorch_version = torch.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -658,7 +658,7 @@ def test_iris_pytorch_conda_env_additional_deps(
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "keras==1.6.0",
                 "fake_package==2.1.0",
                 "fastapi==0.52.1",

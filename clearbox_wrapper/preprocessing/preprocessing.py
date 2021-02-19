@@ -1,14 +1,13 @@
 import os
 from typing import Callable, Union
 
-import dill
+import cloudpickle
 import numpy as np
 import pandas as pd
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 
 
-dill.settings["recurse"] = True
 PreprocessingInput = Union[pd.DataFrame, pd.Series, np.ndarray]
 PreprocessingOutput = Union[pd.DataFrame, pd.Series, np.ndarray]
 
@@ -88,7 +87,7 @@ class Preprocessing(object):
                 "Preprocessing path '{}' already exists".format(path)
             )
         with open(path, "wb") as preprocessing_serialized_file:
-            dill.dump(self, preprocessing_serialized_file)
+            cloudpickle.dump(self, preprocessing_serialized_file)
 
 
 def create_and_save_preprocessing(preprocessing_function: Callable, path: str) -> None:
@@ -128,9 +127,9 @@ def create_and_save_preprocessing(preprocessing_function: Callable, path: str) -
 
     preprocessing = Preprocessing(preprocessing_function)
     with open(path, "wb") as preprocessing_serialized_file:
-        dill.dump(preprocessing, preprocessing_serialized_file)
+        cloudpickle.dump(preprocessing, preprocessing_serialized_file)
 
 
 def load_serialized_preprocessing(serialized_preprocessing_path: str) -> Preprocessing:
     with open(serialized_preprocessing_path, "rb") as serialized_preprocessing:
-        return dill.load(serialized_preprocessing)
+        return cloudpickle.load(serialized_preprocessing)

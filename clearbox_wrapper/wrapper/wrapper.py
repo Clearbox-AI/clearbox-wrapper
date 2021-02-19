@@ -141,9 +141,9 @@ class WrapperModel(ClearboxModel):
 
 
 def _check_and_get_conda_env(model: Any, additional_deps: List = None) -> Dict:
-    import dill
+    import cloudpickle
 
-    pip_deps = ["dill=={}".format(dill.__version__)]
+    pip_deps = ["cloudpickle=={}".format(cloudpickle.__version__)]
 
     if additional_deps is not None:
         pip_deps += additional_deps
@@ -227,8 +227,8 @@ def save_model(
     if data_preparation and preprocessing:
         preparation = DataPreparation(data_preparation)
         data_preprocessing = Preprocessing(preprocessing)
-        saved_data_preparation_subpath = "data_preparation.dill"
-        saved_preprocessing_subpath = "preprocessing.dill"
+        saved_data_preparation_subpath = "data_preparation.pkl"
+        saved_preprocessing_subpath = "preprocessing.pkl"
         if input_data is not None:
             data_preparation_output = preparation.prepare_data(input_data)
             preprocessing_output = data_preprocessing.preprocess(
@@ -246,7 +246,7 @@ def save_model(
             mlmodel.model_signature = model_signature
     elif preprocessing:
         data_preprocessing = Preprocessing(preprocessing)
-        saved_preprocessing_subpath = "preprocessing.dill"
+        saved_preprocessing_subpath = "preprocessing.pkl"
         if input_data is not None:
             preprocessing_output = data_preprocessing.preprocess(input_data)
             preprocessing_signature = infer_signature(input_data, preprocessing_output)

@@ -404,7 +404,7 @@ def test_iris_keras_predict_without_data_preparation(
 
 
 def test_iris_keras_conda_env(iris_data, keras_model, model_path):
-    import dill
+    import cloudpickle
     import tensorflow
 
     x, y = iris_data
@@ -420,7 +420,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     tf_version = tensorflow.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -428,7 +428,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "tensorflow=={}".format(tf_version),
             ]
         },
@@ -438,7 +438,7 @@ def test_iris_keras_conda_env(iris_data, keras_model, model_path):
 
 
 def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path):
-    import dill
+    import cloudpickle
     import tensorflow
 
     x, y = iris_data
@@ -461,7 +461,7 @@ def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     tf_version = tensorflow.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -469,7 +469,7 @@ def test_iris_keras_conda_env_additional_deps(iris_data, keras_model, model_path
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "torch==1.6.0",
                 "fake_package=2.1.0",
                 "fastapi==0.52.1",

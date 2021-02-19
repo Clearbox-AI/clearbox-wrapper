@@ -16,13 +16,13 @@ from clearbox_wrapper.wrapper import add_clearbox_flavor_to_model
 
 FLAVOR_NAME = "keras"
 
-_CUSTOM_OBJECTS_SAVE_PATH = "custom_objects.dill"
+_CUSTOM_OBJECTS_SAVE_PATH = "custom_objects.pickle"
 _KERAS_MODULE_SPEC_PATH = "keras_module.txt"
 _KERAS_SAVE_FORMAT_PATH = "save_format.txt"
 _MODEL_SAVE_PATH = "model"
 
 
-def get_default_keras_conda_env(include_dill=False, keras_module=None) -> Dict:
+def get_default_keras_conda_env(include_cloudpickle=False, keras_module=None) -> Dict:
     import tensorflow as tf
 
     pip_deps = []
@@ -34,10 +34,10 @@ def get_default_keras_conda_env(include_dill=False, keras_module=None) -> Dict:
     if keras_module.__name__ == "keras":
         pip_deps.append("keras=={}".format(keras_module.__version__))
 
-    if include_dill:
-        import dill
+    if include_cloudpickle:
+        import cloudpickle
 
-        pip_deps.append("dill=={}".format(dill.__version__))
+        pip_deps.append("cloudpickle=={}".format(cloudpickle.__version__))
 
     pip_deps.append("tensorflow=={}".format(tf.__version__))
 
@@ -61,13 +61,11 @@ def _save_custom_objects(path, custom_objects):
                            loaded with :py:func:`mlflow.keras.load_model` and
                            :py:func:`mlflow.pyfunc.load_model`.
     """
-    import dill
-
-    dill.settings["recurse"] = True
+    import cloudpickle
 
     custom_objects_path = os.path.join(path, _CUSTOM_OBJECTS_SAVE_PATH)
     with open(custom_objects_path, "wb") as out_f:
-        dill.dump(custom_objects, out_f)
+        cloudpickle.dump(custom_objects, out_f)
 
 
 def save_keras_model(
@@ -161,7 +159,7 @@ def save_keras_model(
     conda_env_subpath = "conda.yaml"
     if conda_env is None:
         conda_env = get_default_keras_conda_env(
-            include_dill=custom_objects is not None, keras_module=keras_module
+            include_cloudpickle=custom_objects is not None, keras_module=keras_module
         )
     elif not isinstance(conda_env, dict):
         with open(conda_env, "r") as f:
@@ -207,12 +205,10 @@ def _load_model(model_path, keras_module, save_format, **kwargs):
             custom_objects_path = os.path.join(model_path, _CUSTOM_OBJECTS_SAVE_PATH)
         model_path = os.path.join(model_path, _MODEL_SAVE_PATH)
     if custom_objects_path is not None:
-        import dill
-
-        dill.settings["recurse"] = True
+        import cloudpickle
 
         with open(custom_objects_path, "rb") as in_f:
-            pickled_custom_objects = dill.load(in_f)
+            pickled_custom_objects = cloudpickle.load(in_f)
             pickled_custom_objects.update(custom_objects)
             custom_objects = pickled_custom_objects
 
