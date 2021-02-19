@@ -361,7 +361,7 @@ def test_iris_xgboost_predict_without_data_preparation(
 
 
 def test_iris_xgboost_conda_env(iris_data, model_path):
-    import dill
+    import cloudpickle
 
     x, y = iris_data
     model = xgb.XGBClassifier(use_label_encoder=False)
@@ -375,7 +375,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     xgb_version = xgb.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -383,7 +383,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "xgboost=={}".format(xgb_version),
             ]
         },
@@ -393,7 +393,7 @@ def test_iris_xgboost_conda_env(iris_data, model_path):
 
 
 def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
-    import dill
+    import cloudpickle
 
     x, y = iris_data
     model = xgb.XGBClassifier(use_label_encoder=False)
@@ -415,7 +415,7 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
         major=version_info.major, minor=version_info.minor, micro=version_info.micro
     )
     xgb_version = xgb.__version__
-    dill_version = dill.__version__
+    cloudpickle_version = cloudpickle.__version__
 
     channels_list = ["defaults", "conda-forge"]
     dependencies = [
@@ -423,7 +423,7 @@ def test_iris_xgboost_conda_env_additional_deps(iris_data, model_path):
         "pip",
         {
             "pip": [
-                "dill=={}".format(dill_version),
+                "cloudpickle=={}".format(cloudpickle_version),
                 "torch==1.6.0",
                 "tensorflow==2.1.0",
                 "fastapi==0.52.1",

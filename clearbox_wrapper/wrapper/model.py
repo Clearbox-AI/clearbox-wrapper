@@ -1,10 +1,8 @@
 from abc import ABCMeta, abstractmethod
 
-import dill
+import cloudpickle
 
 from clearbox_wrapper.utils import _get_default_conda_env
-
-dill.settings["recurse"] = True
 
 
 def get_default_conda_env():
@@ -16,7 +14,7 @@ def get_default_conda_env():
     """
     return _get_default_conda_env(
         additional_conda_deps=None,
-        additional_pip_deps=["dill=={}".format(dill.__version__)],
+        additional_pip_deps=["cloudpickle=={}".format(cloudpickle.__version__)],
         additional_conda_channels=None,
     )
 

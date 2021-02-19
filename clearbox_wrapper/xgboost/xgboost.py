@@ -73,7 +73,7 @@ def save_xgboost_model(
         The format in which to serialize the model. This should be one of the formats listed in
         SUPPORTED_SERIALIZATION_FORMATS. Cloudpickle format, SERIALIZATION_FORMAT_CLOUDPICKLE,
         provides better cross-system compatibility by identifying and packaging code
-        dependencies with the serialized model, by default SERIALIZATION_FORMAT_DILL
+        dependencies with the serialized model, by default SERIALIZATION_FORMAT_CLOUDPICKLE
     signature : Optional[Signature], optional
         A model signature describes model input schema. It can be inferred from datasets with
         valid model type (e.g. the training dataset with target column omitted), by default None

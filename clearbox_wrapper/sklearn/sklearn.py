@@ -18,18 +18,14 @@ FLAVOR_NAME = "sklearn"
 
 SERIALIZATION_FORMAT_PICKLE = "pickle"
 SERIALIZATION_FORMAT_CLOUDPICKLE = "cloudpickle"
-SERIALIZATION_FORMAT_DILL = "dill"
 
 SUPPORTED_SERIALIZATION_FORMATS = [
     SERIALIZATION_FORMAT_PICKLE,
     SERIALIZATION_FORMAT_CLOUDPICKLE,
-    SERIALIZATION_FORMAT_DILL,
 ]
 
 
-def get_default_sklearn_conda_env(
-    include_dill: bool = False, include_cloudpickle: bool = False
-) -> Dict:
+def get_default_sklearn_conda_env(include_cloudpickle: bool = False) -> Dict:
     """Generate the default Conda environment for Scikit-Learn models.
 
     Parameters
@@ -46,10 +42,6 @@ def get_default_sklearn_conda_env(
 
     pip_deps = ["scikit-learn=={}".format(sklearn.__version__)]
 
-    if include_dill:
-        import dill
-
-        pip_deps += ["dill=={}".format(dill.__version__)]
     if include_cloudpickle:
         import cloudpickle
 
@@ -64,7 +56,7 @@ def save_sklearn_model(
     path: str,
     conda_env: Optional[Union[str, Dict]] = None,
     mlmodel: Optional[Model] = None,
-    serialization_format: str = SERIALIZATION_FORMAT_DILL,
+    serialization_format: str = SERIALIZATION_FORMAT_CLOUDPICKLE,
     signature: Optional[Signature] = None,
     add_clearbox_flavor: bool = False,
     preprocessing_subpath: str = None,
@@ -99,7 +91,7 @@ def save_sklearn_model(
         The format in which to serialize the model. This should be one of the formats listed in
         SUPPORTED_SERIALIZATION_FORMATS. Cloudpickle format, SERIALIZATION_FORMAT_CLOUDPICKLE,
         provides better cross-system compatibility by identifying and packaging code
-        dependencies with the serialized model, by default SERIALIZATION_FORMAT_DILL
+        dependencies with the serialized model, by default SERIALIZATION_FORMAT_CLOUDPICKLE
     signature : Optional[Signature], optional
         A model signature describes model input schema. It can be inferred from datasets with
         valid model type (e.g. the training dataset with target column omitted), by default None
@@ -129,11 +121,7 @@ def save_sklearn_model(
     if signature is not None:
         mlmodel.signature = signature
 
-    model_data_subpath = (
-        "model.dill"
-        if serialization_format == SERIALIZATION_FORMAT_DILL
-        else "model.pkl"
-    )
+    model_data_subpath = "model.pkl"
 
     _serialize_and_save_model(
         sk_model=sk_model,
@@ -144,9 +132,7 @@ def save_sklearn_model(
     conda_env_subpath = "conda.yaml"
     if conda_env is None:
         conda_env = get_default_sklearn_conda_env(
-            include_cloudpickle=serialization_format
-            == SERIALIZATION_FORMAT_CLOUDPICKLE,
-            include_dill=serialization_format == SERIALIZATION_FORMAT_DILL,
+            include_cloudpickle=serialization_format == SERIALIZATION_FORMAT_CLOUDPICKLE
         )
     elif not isinstance(conda_env, dict):
         with open(conda_env, "r") as f:
@@ -212,11 +198,6 @@ def _serialize_and_save_model(
             import cloudpickle
 
             cloudpickle.dump(sk_model, out)
-        elif serialization_format == SERIALIZATION_FORMAT_DILL:
-            import dill
-
-            dill.settings["recurse"] = True
-            dill.dump(sk_model, out)
         else:
             raise ClearboxWrapperException(
                 "Unrecognized serialization format: {serialization_format}".format(
@@ -259,11 +240,7 @@ def _load_serialized_model(
         )
     with open(serialized_model_path, "rb") as f:
         # Models serialized with Cloudpickle cannot necessarily be deserialized using Pickle;
-        if serialization_format == SERIALIZATION_FORMAT_DILL:
-            import dill
-
-            return dill.load(f)
-        elif serialization_format == SERIALIZATION_FORMAT_PICKLE:
+        if serialization_format == SERIALIZATION_FORMAT_PICKLE:
             return pickle.load(f)
         elif serialization_format == SERIALIZATION_FORMAT_CLOUDPICKLE:
             import cloudpickle
@@ -327,7 +304,7 @@ def _load_clearbox(model_path: str) -> Any:
             model_path=model_path, flavor_name=FLAVOR_NAME
         )
         serialization_format = sklearn_flavor_conf.get(
-            "serialization_format", SERIALIZATION_FORMAT_DILL
+            "serialization_format", SERIALIZATION_FORMAT_CLOUDPICKLE
         )
     except ClearboxWrapperException:
         logger.warning(
