@@ -63,6 +63,8 @@ def _save_custom_objects(path, custom_objects):
     """
     import dill
 
+    dill.settings["recurse"] = True
+
     custom_objects_path = os.path.join(path, _CUSTOM_OBJECTS_SAVE_PATH)
     with open(custom_objects_path, "wb") as out_f:
         dill.dump(custom_objects, out_f)
@@ -206,6 +208,8 @@ def _load_model(model_path, keras_module, save_format, **kwargs):
         model_path = os.path.join(model_path, _MODEL_SAVE_PATH)
     if custom_objects_path is not None:
         import dill
+
+        dill.settings["recurse"] = True
 
         with open(custom_objects_path, "rb") as in_f:
             pickled_custom_objects = dill.load(in_f)

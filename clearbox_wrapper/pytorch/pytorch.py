@@ -32,6 +32,7 @@ _TORCH_STATE_DICT_FILE_NAME = "state_dict.pth"
 _PICKLE_MODULE_INFO_FILE_NAME = "pickle_module_info.txt"
 _EXTRA_FILES_KEY = "extra_files"
 _REQUIREMENTS_FILE_KEY = "requirements_file"
+dill.settings["recurse"] = True
 
 
 def get_default_pytorch_conda_env() -> Dict:
@@ -342,11 +343,8 @@ class _PyTorchWrapper(object):
     def predict(self, data, device="cpu"):
         import torch
 
-        logger.warning("PORCONE!")
-        logger.warning(data)
         if isinstance(data, pd.DataFrame):
             inp_data = data.values.astype(np.float32)
-            logger.warning(inp_data)
         elif isinstance(data, np.ndarray):
             inp_data = data
         elif isinstance(data, (list, dict)):

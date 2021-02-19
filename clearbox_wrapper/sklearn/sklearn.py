@@ -215,6 +215,7 @@ def _serialize_and_save_model(
         elif serialization_format == SERIALIZATION_FORMAT_DILL:
             import dill
 
+            dill.settings["recurse"] = True
             dill.dump(sk_model, out)
         else:
             raise ClearboxWrapperException(
