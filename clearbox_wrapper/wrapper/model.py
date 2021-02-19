@@ -4,6 +4,8 @@ import dill
 
 from clearbox_wrapper.utils import _get_default_conda_env
 
+dill.settings["recurse"] = True
+
 
 def get_default_conda_env():
     """

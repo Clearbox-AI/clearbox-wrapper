@@ -1,0 +1,12 @@
+channels:
+- defaults
+- conda-forge
+dependencies:
+- python=3.8.5
+- pip
+- pip:
+  - dill==0.3.3
+  - pandas==1.2.0
+  - scikit-learn==0.23.2
+  - tensorflow==2.4.1
+name: conda-env

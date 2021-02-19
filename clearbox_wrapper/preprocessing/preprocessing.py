@@ -8,6 +8,7 @@ import pandas as pd
 from clearbox_wrapper.exceptions import ClearboxWrapperException
 
 
+dill.settings["recurse"] = True
 PreprocessingInput = Union[pd.DataFrame, pd.Series, np.ndarray]
 PreprocessingOutput = Union[pd.DataFrame, pd.Series, np.ndarray]
 

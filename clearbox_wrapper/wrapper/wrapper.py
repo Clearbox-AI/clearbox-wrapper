@@ -260,7 +260,6 @@ def save_model(
     conda_env = _check_and_get_conda_env(model, additional_deps)
     model_super_classes = get_super_classes_names(model)
 
-    logger.warning(model_super_classes)
     if any("sklearn" in super_class for super_class in model_super_classes):
         save_sklearn_model(
             model,
@@ -357,8 +356,6 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
         else model_path
     )
 
-    logger.warning("-- Data path: {}".format(data_path))
-
     model_implementation = importlib.import_module(
         clearbox_flavor_configuration[MAIN]
     )._load_clearbox(data_path)
@@ -368,14 +365,12 @@ def load_model(model_path: str, suppress_warnings: bool = False) -> WrapperModel
             model_path, clearbox_flavor_configuration[PREPROCESSING]
         )
         preprocessing = load_serialized_preprocessing(preprocessing_path)
-        logger.warning(preprocessing)
 
     if DATA_PREPARATION in clearbox_flavor_configuration:
         data_preparation_path = os.path.join(
             model_path, clearbox_flavor_configuration[DATA_PREPARATION]
         )
         data_preparation = load_serialized_data_preparation(data_preparation_path)
-        logger.warning(data_preparation)
 
     loaded_model = WrapperModel(
         model_meta=mlmodel,
