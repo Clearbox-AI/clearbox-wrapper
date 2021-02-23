@@ -177,7 +177,7 @@ def test_adult_keras_preprocessing(adult_training, adult_test, model_path):
     loaded_model = cbw.load_model(model_path)
 
     x_test_transformed = x_preprocessor.transform(x_test)
-    original_model_predictions = model.predict_proba(x_test_transformed)
+    original_model_predictions = model.predict(x_test_transformed)
     loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
