@@ -3,7 +3,6 @@ import importlib
 import os
 from typing import Any, Dict, Optional, Union
 
-# import pandas as pd
 import yaml
 
 from clearbox_wrapper.exceptions import ClearboxWrapperException
@@ -377,11 +376,10 @@ class _KerasModelWrapper:
 
     def predict(self, data):
         def _predict(data):
-            """if isinstance(data, pd.DataFrame):
-                predicted = pd.DataFrame(self.keras_model.predict(data.values))
-                predicted.index = data.index
-            else:"""
-            predicted = self.keras_model.predict(data.values)
+            if hasattr(data, "values"):
+                predicted = self.keras_model.predict(data.values)
+            else:
+                predicted = self.keras_model.predict(data)
             return predicted
 
         # In TensorFlow < 2.0, we use a graph and session to predict
