@@ -164,7 +164,6 @@ def test_adult_sklearn_preprocessing(sklearn_model, adult_training, adult_test, 
 
     fitted_model = sklearn_model.fit(x_transformed, y_transformed)
     tmp_model_path = str(tmpdir + "/saved_model")
-    print(dir(cbw))
     cbw.save_model(
         tmp_model_path, fitted_model, preprocessing=x_preprocessor, zip=False
     )
