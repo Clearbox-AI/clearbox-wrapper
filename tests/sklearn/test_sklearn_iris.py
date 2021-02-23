@@ -473,3 +473,23 @@ def test_iris_sklearn_conda_env_additional_deps_with_duplicates(iris_data, tmpdi
         cbw.save_model(
             tmp_model_path, fitted_model, additional_deps=add_deps, zip=False
         )
+
+
+def tests_iris_sklearn_zipped_path_already_exists(iris_data, tmpdir):
+    x, y = iris_data
+    model = linear_model.LogisticRegression(max_iter=150)
+    fitted_model = model.fit(x, y)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(tmp_model_path, fitted_model)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(tmp_model_path, fitted_model)
+
+
+def tests_iris_sklearn_path_already_exists(iris_data, tmpdir):
+    x, y = iris_data
+    model = linear_model.LogisticRegression(max_iter=150)
+    fitted_model = model.fit(x, y)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(tmp_model_path, fitted_model, zip=False)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(tmp_model_path, fitted_model, zip=False)

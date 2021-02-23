@@ -279,3 +279,87 @@ def test_adult_pytorch_preprocessing_and_data_preparation(
     loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+
+def test_adult_pytorch_zipped_path_already_exists(
+    adult_training, adult_test, data_preparation, model_path
+):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
+
+    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    x_train_transformed = torch.Tensor(x_train_transformed.todense())
+
+    y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
+    y_train_transformed = torch.Tensor(y_train_transformed.todense())
+
+    def preprocessing_function(x_data):
+        x_transformed = x_preprocessor.transform(x_data)
+        return x_transformed.todense()
+
+    model = AdultModel(x_train_transformed.shape[1])
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.train()
+    train(model, x_train_transformed, y_train_transformed)
+
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=data_preparation,
+    )
+
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path,
+            model,
+            preprocessing=preprocessing_function,
+            data_preparation=data_preparation,
+        )
+
+
+def test_adult_pytorch_path_already_exists(
+    adult_training, adult_test, data_preparation, model_path
+):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
+
+    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    x_train_transformed = torch.Tensor(x_train_transformed.todense())
+
+    y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
+    y_train_transformed = torch.Tensor(y_train_transformed.todense())
+
+    def preprocessing_function(x_data):
+        x_transformed = x_preprocessor.transform(x_data)
+        return x_transformed.todense()
+
+    model = AdultModel(x_train_transformed.shape[1])
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.train()
+    train(model, x_train_transformed, y_train_transformed)
+
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=data_preparation,
+        zip=False,
+    )
+
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path,
+            model,
+            preprocessing=preprocessing_function,
+            data_preparation=data_preparation,
+            zip=False,
+        )

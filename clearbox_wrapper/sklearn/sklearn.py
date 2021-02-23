@@ -111,6 +111,7 @@ def save_sklearn_model(
                 supported_formats=SUPPORTED_SERIALIZATION_FORMATS,
             )
         )
+
     if os.path.exists(path):
         raise ClearboxWrapperException("Model path '{}' already exists".format(path))
 
