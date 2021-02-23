@@ -364,9 +364,9 @@ class _PyTorchWrapper(object):
                     "Expected PyTorch model to output a single output tensor, "
                     "but got output of type '{}'".format(type(preds))
                 )
-            if isinstance(data, pd.DataFrame):
+            """ if isinstance(data, pd.DataFrame):
                 predicted = pd.DataFrame(preds.numpy())
                 predicted.index = data.index
-            else:
-                predicted = preds.numpy()
+            else: """
+            predicted = preds.numpy()
             return predicted
