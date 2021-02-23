@@ -216,3 +216,55 @@ def test_adult_xgboost_preprocessing_and_data_preparation(
     loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+
+def tests_adult_xgboost_zipped_path_already_exists(
+    adult_training, adult_test, model_path
+):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_transformed = x_preprocessor.fit_transform(x_training)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    model = xgb.XGBClassifier(
+        colsample_bytree=1.0,
+        max_depth=10,
+        min_child_weight=0,
+        subsample=0.5,
+        reg_lambda=100.0,
+        n_estimators=20,
+        random_state=42,
+    )
+
+    fitted_model = model.fit(x_transformed, y_transformed)
+    cbw.save_model(model_path, fitted_model, preprocessing=x_preprocessor)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(model_path, fitted_model, preprocessing=x_preprocessor)
+
+
+def tests_adult_xgboost_path_already_exists(adult_training, adult_test, model_path):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_transformed = x_preprocessor.fit_transform(x_training)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    model = xgb.XGBClassifier(
+        colsample_bytree=1.0,
+        max_depth=10,
+        min_child_weight=0,
+        subsample=0.5,
+        reg_lambda=100.0,
+        n_estimators=20,
+        random_state=42,
+    )
+
+    fitted_model = model.fit(x_transformed, y_transformed)
+    cbw.save_model(model_path, fitted_model, preprocessing=x_preprocessor, zip=False)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path, fitted_model, preprocessing=x_preprocessor, zip=False
+        )

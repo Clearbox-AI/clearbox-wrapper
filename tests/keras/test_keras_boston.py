@@ -188,3 +188,65 @@ def test_boston_keras_data_preparation_and_preprocessing(
     loaded_model_predictions = loaded_model.predict(x_test)
 
     np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+
+def test_boston_keras_zipped_path_already_exists(
+    sk_function_transformer,
+    add_value_to_column_transformer,
+    boston_training_test,
+    keras_model,
+    model_path,
+):
+    x_train, x_test, y_train, _ = boston_training_test
+
+    x_train_prepared = add_value_to_column_transformer(x_train)
+    x_train_transformed = sk_function_transformer.fit_transform(x_train_prepared)
+
+    model = keras_model
+    model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=sk_function_transformer,
+        data_preparation=add_value_to_column_transformer,
+    )
+
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path,
+            model,
+            preprocessing=sk_function_transformer,
+            data_preparation=add_value_to_column_transformer,
+        )
+
+
+def test_boston_keras_path_already_exists(
+    sk_function_transformer,
+    add_value_to_column_transformer,
+    boston_training_test,
+    keras_model,
+    model_path,
+):
+    x_train, x_test, y_train, _ = boston_training_test
+
+    x_train_prepared = add_value_to_column_transformer(x_train)
+    x_train_transformed = sk_function_transformer.fit_transform(x_train_prepared)
+
+    model = keras_model
+    model.fit(x_train_transformed, y_train, epochs=10, batch_size=32)
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=sk_function_transformer,
+        data_preparation=add_value_to_column_transformer,
+        zip=False,
+    )
+
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path,
+            model,
+            preprocessing=sk_function_transformer,
+            data_preparation=add_value_to_column_transformer,
+            zip=False,
+        )
