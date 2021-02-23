@@ -381,7 +381,7 @@ class _KerasModelWrapper:
                 predicted = pd.DataFrame(self.keras_model.predict(data.values))
                 predicted.index = data.index
             else:"""
-            predicted = self.keras_model.predict(data)
+            predicted = self.keras_model.predict(data.values)
             return predicted
 
         # In TensorFlow < 2.0, we use a graph and session to predict
