@@ -135,7 +135,7 @@ The following Jupyter notebooks provide examples of simle and complex cases:
 - [XGBoost Model on Lending Club Loans Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/2_loans_preprocessing_xgboost/2_Clearbox_Wrapper_Loans_Xgboost.ipynb) (Preprocessing, No data preparation)
 - [Pytorch Network on Boston Housing Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/3_boston_preprocessing_pytorch/3_Clearbox_Wrapper_Boston_Pytorch.ipynb) (Preprocessing, No data preparation)
 - [Keras Network on UCI Adult Dataset](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/4_adult_data_cleaning_preprocessing_keras/4_Clearbox_Wrapper_Adult_Keras.ipynb) (Preprocessing and data preparation)
-- [Pytorch Network on Diabetes Hospital Readmissions](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/5_hospital_preprocessing_pytorch/4_Clearbox_Wrapper_Hospital_Pytorch.ipynb) (Preprocessing and data preparation)
+- [Pytorch Network on Diabetes Hospital Readmissions](https://github.com/Clearbox-AI/clearbox-wrapper/blob/master/examples/5_hospital_preprocessing_pytorch/5_Clearbox_Wrapper_Hospital_Pytorch.ipynb) (Preprocessing and data preparation)
 
 ## License
 
