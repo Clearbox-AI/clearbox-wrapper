@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -9,31 +9,72 @@ InferableDataset = Union[pd.DataFrame, np.ndarray, Dict[str, np.ndarray]]
 
 
 class Signature(object):
-    def __init__(self, inputs: Schema, outputs: Schema = None):
+    """Description of a Model, Preprocessing or Data Preparation inputs and outpus.
+
+    Attributes
+    ----------
+    inputs : clearbox_wrapper.schema.Schema
+        Inputs schema as a sequence of (optionally) named columns with types.
+    outputs : Optional[clearbox_wrapper.schema.Schema]
+        Outputs schema as a sequence of (optionally) named columns with types.
+
+    """
+
+    def __init__(self, inputs: Schema, outputs: Optional[Schema] = None) -> "Signature":
+        """Create a new Signature instance given inputs and (optionally) outputs schemas.
+
+        Parameters
+        ----------
+        inputs : clearbox_wrapper.schema.Schema
+            Inputs schema as a sequence of (optionally) named columns with types.
+        outputs : Optional[clearbox_wrapper.schema.Schema]
+            Outputs schema as a sequence of (optionally) named columns with types,
+            by default None.
+
+
+        Raises
+        ------
+        TypeError
+            If `inputs` is not type Schema or if `outputs` is not type Schema or None.
+        """
         if not isinstance(inputs, Schema):
-            raise TypeError("inputs must be type Schema, got '{}'".format(type(inputs)))
+            raise TypeError("Inputs must be type Schema, got '{}'".format(type(inputs)))
         if outputs is not None and not isinstance(outputs, Schema):
             raise TypeError(
-                "outputs must be either None or mlflow.models.signature.Schema, "
+                "Outputs must be either None or clearbox_wrapper.schema.Schema, "
                 "got '{}'".format(type(inputs))
             )
         self.inputs = inputs
         self.outputs = outputs
 
     def to_dict(self) -> Dict[str, Any]:
+        """Generate dictionary representation of the signature.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Signature dictionary {"inputs": inputs schema as JSON,
+            "outputs": outputs schema as JSON}
+        """
         return {
             "inputs": self.inputs.to_json(),
             "outputs": self.outputs.to_json() if self.outputs is not None else None,
         }
 
     @classmethod
-    def from_dict(cls, signature_dict: Dict[str, Any]):
-        """
-        Deserialize from dictionary representation.
-        :param signature_dict: Dictionary representation of model signature.
-                               Expected dictionary format:
-                               `{'inputs': <json string>}`
-        :return: Signature populated with the data form the dictionary.
+    def from_dict(cls, signature_dict: Dict[str, Any]) -> "Signature":
+        """Create a Signature instance from a dictionary representation.
+
+        Parameters
+        ----------
+        signature_dict: Dict[str, Any]
+            Signature dictionary {"inputs": inputs schema as JSON,
+            "outputs": outputs schema as JSON}
+
+        Returns
+        -------
+        Signature
+            A Signature instance.
         """
         inputs = Schema.from_json(signature_dict["inputs"])
         if "outputs" in signature_dict and signature_dict["outputs"] is not None:
@@ -42,7 +83,19 @@ class Signature(object):
         else:
             return cls(inputs)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "Signature") -> bool:
+        """Check if two Signature instances (self and other) are equal.
+
+        Parameters
+        ----------
+        other : Signature
+            A Signature instance
+
+        Returns
+        -------
+        bool
+            True if the two signatures are equal, False otherwise.
+        """
         return (
             isinstance(other, Signature)
             and self.inputs == other.inputs
@@ -50,6 +103,13 @@ class Signature(object):
         )
 
     def __repr__(self) -> str:
+        """Generate string representation.
+
+        Returns
+        -------
+        str
+            Signature string representation.
+        """
         return (
             "inputs: \n"
             "  {}\n"
@@ -59,23 +119,32 @@ class Signature(object):
 
 
 def infer_signature(input_data: Any, output_data: InferableDataset = None) -> Signature:
-    """
-    Infer an MLflow model signature from the training data (input).
-    The signature represents model input as data frames with (optionally) named columns
-    and data type specified as one of types defined in :py:class:`mlflow.types.DataType`.
-    This method will raise an exception if the user data contains incompatible types or is not
-    passed in one of the supported formats listed below.
-    The input should be one of these:
-      - pandas.DataFrame
-      - dictionary of { name -> numpy.ndarray}
-      - numpy.ndarray
-      - pyspark.sql.DataFrame
-    The element types should be mappable to one of :py:class:`mlflow.types.DataType`.
-    NOTE: Multidimensional (>2d) arrays (aka tensors) are not supported at this time.
-    :param model_input: Valid input to the model. E.g. (a subset of) the training dataset.
-    :param model_output: Valid model output. E.g. Model predictions for the (subset of) training
-                         dataset.
-    :return: Signature
+    """Infer a Signature from input data and (optionally) output data.
+
+    The signature represents inputs and outputs scheme as  a sequence
+    of (optionally) named columns with types.
+
+    Parameters
+    ----------
+    input_data : Any
+        Valid input data. E.g. (a subset of) the training dataset. It should be
+        one of the following types:
+        - pandas.DataFrame
+        - dictionary of { name -> numpy.ndarray}
+        - numpy.ndarray
+        The element types should be mappable to one of `clearbox.schema.DataType`.
+    output_data : InferableDataset, optional
+        Valid output data. E.g. Preprocessed data or model predictions for
+        (a subset of) the training dataset. It should be one of the following types:
+        - pandas.DataFrame
+        - numpy.ndarray
+        The element types should be mappable to one of `clearbox.schema.DataType`.
+        By default None.
+
+    Returns
+    -------
+    Signature
+        Inferred Signature
     """
     inputs = _infer_schema(input_data)
     outputs = _infer_schema(output_data) if output_data is not None else None

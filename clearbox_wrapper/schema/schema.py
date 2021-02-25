@@ -28,11 +28,10 @@ class DataType(Enum):
 
 class ColumnSpec(object):
     def __init__(
-        self,
-        type: DataType,
-        name: Optional[str] = None,
+        self, type: DataType, name: Optional[str] = None, has_nans: bool = False
     ):
         self._name = name
+        self._has_nans = has_nans
         try:
             self._type = DataType[type] if isinstance(type, str) else type
         except KeyError:
@@ -52,25 +51,36 @@ class ColumnSpec(object):
         return self._type
 
     @property
+    def has_nans(self) -> bool:
+        """Wheter the columns contains Na values."""
+        return self._has_nans
+
+    @property
     def name(self) -> Optional[str]:
         """The column name or None if the columns is unnamed."""
         return self._name
 
     def to_dict(self) -> Dict[str, Any]:
         if self.name is None:
-            return {"type": self.type.name}
+            return {"type": self.type.name, "has_nans": self.has_nans}
         else:
-            return {"name": self.name, "type": self.type.name}
+            return {
+                "name": self.name,
+                "type": self.type.name,
+                "has_nans": str(self.has_nans),
+            }
 
     def __eq__(self, other) -> bool:
         names_eq = (self.name is None and other.name is None) or self.name == other.name
-        return names_eq and self.type == other.type
+        return names_eq and self.type == other.type and self.has_nans == other.has_nans
 
     def __repr__(self) -> str:
         if self.name is None:
             return repr(self.type)
         else:
-            return "{name}: {type}".format(name=repr(self.name), type=repr(self.type))
+            return "{name}: {type}, Na values: {has_nans}".format(
+                name=repr(self.name), type=repr(self.type), has_nans=repr(self.has_nans)
+            )
 
 
 class Schema(object):

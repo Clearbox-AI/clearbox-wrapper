@@ -1,6 +1,6 @@
 from typing import Any
 
-# from loguru import logger
+from loguru import logger
 import numpy as np
 import pandas as pd
 
@@ -32,7 +32,9 @@ def _infer_schema(data: Any) -> Schema:
     :param data: Dataset to infer from.
     :return: Schema
     """
-
+    if hasattr(data, "toarray"):
+        logger.debug("=====> POLLO!")
+        data = data.toarray()
     if isinstance(data, dict):
         res = []
         for col in data.keys():
@@ -49,14 +51,35 @@ def _infer_schema(data: Any) -> Schema:
                 )
         schema = Schema(res)
     elif isinstance(data, pd.Series):
-        schema = Schema([ColumnSpec(type=_infer_numpy_array(data.values))])
-    elif isinstance(data, pd.DataFrame):
+        has_nans = data.isna().any()
+        series_converted_to_numpy = data.dropna().values if has_nans else data.values
         schema = Schema(
             [
-                ColumnSpec(type=_infer_numpy_array(data[col].values), name=col)
-                for col in data.columns
+                ColumnSpec(
+                    type=_infer_numpy_array(series_converted_to_numpy),
+                    has_nans=has_nans,
+                )
             ]
         )
+    elif isinstance(data, pd.DataFrame):
+        logger.debug("===> ECCOMI SONO IO")
+        columns_spec_list = []
+        for col in data.columns:
+            logger.debug("===> COL: {}".format(col))
+            has_nans = data[col].isna().any()
+            col_converted_to_numpy = (
+                data[col].dropna().values if has_nans else data[col].values
+            )
+            columns_spec_list.append(
+                ColumnSpec(
+                    type=_infer_numpy_array(col_converted_to_numpy),
+                    name=col,
+                    has_nans=has_nans,
+                )
+            )
+        # logger.debug("==========> COLUMNS_LIST:\n{}".format(columns_spec_list))
+        schema = Schema(columns_spec_list)
+        logger.debug("===> ECCOMI HO FINITO")
     elif isinstance(data, np.ndarray):
         if len(data.shape) > 2:
             raise TensorsNotSupportedException(
@@ -152,6 +175,7 @@ def _infer_numpy_array(col: np.ndarray) -> DataType:
                 return False
 
     if col.dtype.kind == "O":
+        logger.debug("====> SONO O")
         is_binary_test = IsInstanceOrNone(bytes, bytearray)
         if all(map(is_binary_test, col)) and is_binary_test.seen_instances > 0:
             return DataType.binary

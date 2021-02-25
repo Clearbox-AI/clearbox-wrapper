@@ -1,3 +1,4 @@
+from loguru import logger
 import numpy as np
 import pandas as pd
 import pytest
@@ -57,6 +58,74 @@ def x_and_y_preprocessing(x_dataframe):
     )
     y_encoder = sk_preprocessing.LabelEncoder()
     return x_encoder, y_encoder
+
+
+def _check_schema(pdf, input_schema):
+
+    logger.warning("-- input type: {}".format(type(pdf)))
+    logger.warning("-- input:\n {}".format(pdf.shape))
+    if hasattr(pdf, "toarray"):
+        logger.debug("=====> POLLO!")
+        pdf = pdf.toarray()
+    if isinstance(pdf, (list, np.ndarray, dict)):
+        logger.warning("-- Sono entrato nel primo IF.")
+        try:
+            pdf = pd.DataFrame(pdf)
+        except Exception as e:
+            message = (
+                "This model contains a model signature, which suggests a DataFrame input."
+                "There was an error casting the input data to a DataFrame: {0}".format(
+                    str(e)
+                )
+            )
+            raise cbw.ClearboxWrapperException(message)
+    if not isinstance(pdf, pd.DataFrame):
+        message = (
+            "Expected input to be DataFrame or list. Found: %s" % type(pdf).__name__
+        )
+        raise cbw.ClearboxWrapperException(message)
+
+    if input_schema.has_column_names():
+        logger.warning("-- input_schema.has_column_names.")
+        # make sure there are no missing columns
+        col_names = input_schema.column_names()
+        expected_names = set(col_names)
+        actual_names = set(pdf.columns)
+        missing_cols = expected_names - actual_names
+        extra_cols = actual_names - expected_names
+        # Preserve order from the original columns, since missing/extra columns are likely to
+        # be in same order.
+        missing_cols = [c for c in col_names if c in missing_cols]
+        extra_cols = [c for c in pdf.columns if c in extra_cols]
+        if missing_cols:
+            print(
+                "Model input is missing columns {0}."
+                " Note that there were extra columns: {1}".format(
+                    missing_cols, extra_cols
+                )
+            )
+            return False
+    else:
+        logger.warning("-- input_schema.has_NOT_column_names.")
+        # The model signature does not specify column names => we can only verify column count.
+        logger.warning("-- pdf.columns: {}".format(pdf.columns))
+        logger.warning("-- len pdf.columns: {}".format(len(pdf.columns)))
+        logger.warning("-- input_schema.columns: {}".format(input_schema.columns))
+        logger.warning(
+            "-- len input_schema.columns: {}".format(len(input_schema.columns))
+        )
+        if len(pdf.columns) != len(input_schema.columns):
+            print(
+                "The model signature declares "
+                "{0} input columns but the provided input has "
+                "{1} columns. Note: the columns were not named in the signature so we can "
+                "only verify their count.".format(
+                    len(input_schema.columns), len(pdf.columns)
+                )
+            )
+            return False
+        col_names = pdf.columns[: len(input_schema.columns)]
+    return True
 
 
 @pytest.fixture()
@@ -284,3 +353,138 @@ def test_adult_sklearn_get_preprocessed_data(
         x_test_transformed.todense(),
         x_test_transformed_by_loaded_preprocessing.todense(),
     )
+
+
+def tests_adult_sklearn_zipped_path_already_exists(adult_training, adult_test, tmpdir):
+    x_training, y_training = adult_training
+    x_test, y_test = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_transformed = x_preprocessor.fit_transform(x_training)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    sklearn_model = tree.DecisionTreeClassifier()
+    fitted_model = sklearn_model.fit(x_transformed, y_transformed)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(tmp_model_path, fitted_model, preprocessing=x_preprocessor)
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(tmp_model_path, fitted_model)
+
+
+def tests_adult_sklearn_path_already_exists(adult_training, adult_test, tmpdir):
+    x_training, y_training = adult_training
+    x_test, y_test = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_transformed = x_preprocessor.fit_transform(x_training)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    sklearn_model = tree.DecisionTreeClassifier()
+    fitted_model = sklearn_model.fit(x_transformed, y_transformed)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(
+        tmp_model_path, fitted_model, preprocessing=x_preprocessor, zip=False
+    )
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(tmp_model_path, fitted_model, zip=False)
+
+
+@pytest.mark.parametrize(
+    "sklearn_model",
+    [
+        (tree.DecisionTreeClassifier()),
+        (ensemble.RandomForestClassifier()),
+    ],
+)
+def test_adult_sklearn_preprocessing_check_model_and_preprocessing_signature(
+    sklearn_model, adult_training, adult_test, tmpdir
+):
+    x_training, y_training = adult_training
+    x_test, y_test = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_transformed = x_preprocessor.fit_transform(x_training)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    sklearn_model = tree.DecisionTreeClassifier()
+    fitted_model = sklearn_model.fit(x_transformed, y_transformed)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(
+        tmp_model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        input_data=x_training,
+        zip=False,
+    )
+
+    loaded_model = cbw.load_model(tmp_model_path)
+    original_model_predictions = fitted_model.predict(x_transformed[:5])
+    loaded_model_predictions = loaded_model.predict(x_training[:5])
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+    mlmodel = cbw.Model.load(tmp_model_path)
+    preprocessing_input_schema = mlmodel.get_preprocessing_input_schema()
+    preprocessing_output_schema = mlmodel.get_preprocessing_output_schema()
+    model_input_schema = mlmodel.get_model_input_schema()
+
+    logger.warning(preprocessing_input_schema)
+    logger.warning(preprocessing_output_schema)
+
+    assert _check_schema(x_training, preprocessing_input_schema)
+    assert _check_schema(x_transformed, preprocessing_output_schema)
+    assert _check_schema(x_transformed, model_input_schema)
+    assert preprocessing_output_schema == model_input_schema
+
+
+@pytest.mark.parametrize(
+    "sklearn_model",
+    [
+        (tree.DecisionTreeClassifier()),
+        (ensemble.RandomForestClassifier()),
+    ],
+)
+def test_adult_sklearn_check_model_preprocessing_and_data_preparation_signature(
+    sklearn_model, adult_training, adult_test, data_preparation, tmpdir
+):
+    x_training, y_training = adult_training
+    x_test, y_test = adult_test
+
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
+
+    x_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    y_transformed = y_encoder.fit_transform(y_training)
+
+    fitted_model = sklearn_model.fit(x_transformed, y_transformed)
+    tmp_model_path = str(tmpdir + "/saved_model")
+    cbw.save_model(
+        tmp_model_path,
+        fitted_model,
+        preprocessing=x_preprocessor,
+        data_preparation=data_preparation,
+        input_data=x_training,
+        zip=False,
+    )
+
+    loaded_model = cbw.load_model(tmp_model_path)
+    original_model_predictions = fitted_model.predict(
+        x_preprocessor.transform(data_preparation(x_test))
+    )
+    loaded_model_predictions = loaded_model.predict(x_test)
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+    mlmodel = cbw.Model.load(tmp_model_path)
+    data_preparation_input_schema = mlmodel.get_data_preparation_input_schema()
+    data_preparation_output_schema = mlmodel.get_data_preparation_output_schema()
+    preprocessing_input_schema = mlmodel.get_preprocessing_input_schema()
+    preprocessing_output_schema = mlmodel.get_preprocessing_output_schema()
+    model_input_schema = mlmodel.get_model_input_schema()
+
+    assert _check_schema(x_training, data_preparation_input_schema)
+    assert _check_schema(x_training_prepared, data_preparation_output_schema)
+    assert _check_schema(x_training_prepared, preprocessing_input_schema)
+    assert _check_schema(x_transformed, preprocessing_output_schema)
+    assert _check_schema(x_transformed, model_input_schema)
+    assert not _check_schema(x_training, model_input_schema)
+    assert data_preparation_output_schema == preprocessing_input_schema
+    assert preprocessing_output_schema == model_input_schema
