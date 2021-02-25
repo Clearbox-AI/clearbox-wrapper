@@ -1,4 +1,3 @@
-from loguru import logger
 import numpy as np
 import pandas as pd
 import pytest
@@ -62,13 +61,9 @@ def x_and_y_preprocessing(x_dataframe):
 
 def _check_schema(pdf, input_schema):
 
-    logger.warning("-- input type: {}".format(type(pdf)))
-    logger.warning("-- input:\n {}".format(pdf.shape))
     if hasattr(pdf, "toarray"):
-        logger.debug("=====> POLLO!")
         pdf = pdf.toarray()
     if isinstance(pdf, (list, np.ndarray, dict)):
-        logger.warning("-- Sono entrato nel primo IF.")
         try:
             pdf = pd.DataFrame(pdf)
         except Exception as e:
@@ -86,7 +81,6 @@ def _check_schema(pdf, input_schema):
         raise cbw.ClearboxWrapperException(message)
 
     if input_schema.has_column_names():
-        logger.warning("-- input_schema.has_column_names.")
         # make sure there are no missing columns
         col_names = input_schema.column_names()
         expected_names = set(col_names)
@@ -106,14 +100,7 @@ def _check_schema(pdf, input_schema):
             )
             return False
     else:
-        logger.warning("-- input_schema.has_NOT_column_names.")
         # The model signature does not specify column names => we can only verify column count.
-        logger.warning("-- pdf.columns: {}".format(pdf.columns))
-        logger.warning("-- len pdf.columns: {}".format(len(pdf.columns)))
-        logger.warning("-- input_schema.columns: {}".format(input_schema.columns))
-        logger.warning(
-            "-- len input_schema.columns: {}".format(len(input_schema.columns))
-        )
         if len(pdf.columns) != len(input_schema.columns):
             print(
                 "The model signature declares "
@@ -426,9 +413,6 @@ def test_adult_sklearn_preprocessing_check_model_and_preprocessing_signature(
     preprocessing_input_schema = mlmodel.get_preprocessing_input_schema()
     preprocessing_output_schema = mlmodel.get_preprocessing_output_schema()
     model_input_schema = mlmodel.get_model_input_schema()
-
-    logger.warning(preprocessing_input_schema)
-    logger.warning(preprocessing_output_schema)
 
     assert _check_schema(x_training, preprocessing_input_schema)
     assert _check_schema(x_transformed, preprocessing_output_schema)

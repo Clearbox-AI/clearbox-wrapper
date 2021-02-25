@@ -1,6 +1,5 @@
 from typing import Any
 
-from loguru import logger
 import numpy as np
 import pandas as pd
 
@@ -16,24 +15,33 @@ class TensorsNotSupportedException(ClearboxWrapperException):
 
 
 def _infer_schema(data: Any) -> Schema:
-    """
-    Infer an schema from a dataset.
-    This method captures the column names and data types from the user data. The signature
-    represents model input and output as data frames with (optionally) named columns and data
-    type specified as one of types defined in :py:class:`DataType`. This method will raise
-    an exception if the user data contains incompatible types or is not passed in one of the
-    supported formats (containers).
-    The input should be one of these:
-      - pandas.DataFrame or pandas.Series
-      - dictionary of { name -> numpy.ndarray}
-      - numpy.ndarray
-    The element types should be mappable to one of :py:class:`signature.DataType`.
-    NOTE: Multidimensional (>2d) arrays (aka tensors) are not supported at this time.
-    :param data: Dataset to infer from.
-    :return: Schema
+    """Infer a schema from data.
+
+    The schema represents data as a sequence of (optionally) named columns with types.
+
+    Parameters
+    ----------
+    data : Any
+        Valid data. It should be one of the following types:
+        - pandas.DataFrame or pandas.Series
+        - dictionary of { name -> numpy.ndarray}
+        - numpy.ndarray
+        The data types should be mappable to one of  `clearbox.schema.DataType`.
+
+    Returns
+    -------
+    Schema
+        Schema instance inferred from data.
+
+    Raises
+    ------
+    TypeError
+        If type of data is not valid (pandas.DataFrame or pandas.Series, dictionary of
+        { name -> numpy.ndarray}, numpy.ndarray)
+    TensorsNotSupportedException
+        If data are multidimensional (>2d) arrays (tensors).
     """
     if hasattr(data, "toarray"):
-        logger.debug("=====> POLLO!")
         data = data.toarray()
     if isinstance(data, dict):
         res = []
@@ -62,10 +70,8 @@ def _infer_schema(data: Any) -> Schema:
             ]
         )
     elif isinstance(data, pd.DataFrame):
-        logger.debug("===> ECCOMI SONO IO")
         columns_spec_list = []
         for col in data.columns:
-            logger.debug("===> COL: {}".format(col))
             has_nans = data[col].isna().any()
             col_converted_to_numpy = (
                 data[col].dropna().values if has_nans else data[col].values
@@ -77,9 +83,7 @@ def _infer_schema(data: Any) -> Schema:
                     has_nans=has_nans,
                 )
             )
-        # logger.debug("==========> COLUMNS_LIST:\n{}".format(columns_spec_list))
         schema = Schema(columns_spec_list)
-        logger.debug("===> ECCOMI HO FINITO")
     elif isinstance(data, np.ndarray):
         if len(data.shape) > 2:
             raise TensorsNotSupportedException(
@@ -106,23 +110,31 @@ def _infer_schema(data: Any) -> Schema:
             "dictionary of (name -> numpy.ndarray)) "
             "but got '{}'".format(type(data))
         )
-    """ if any([t in (DataType.integer, DataType.long) for t in schema.column_types()]):
-        logger.warning(
-            "Hint: Inferred schema contains integer column(s). Integer columns in "
-            "Python cannot represent missing values. If your input data contains "
-            "missing values at inference time, it will be encoded as floats and will "
-            "cause a schema enforcement error. The best way to avoid this problem is "
-            "to infer the model schema based on a realistic data sample (training "
-            "dataset) that includes missing values. Alternatively, you can declare "
-            "integer columns as doubles (float64) whenever these columns may have "
-            "missing values. See `Handling Integers With Missing Values "
-            "<https://www.mlflow.org/docs/latest/models.html#"
-            "handling-integers-with-missing-values>`_ for more details."
-        ) """
     return schema
 
 
 def _infer_numpy_dtype(dtype: np.dtype) -> DataType:
+    """Infer DataType from numpy dtype.
+
+    Parameters
+    ----------
+    dtype : np.dtype
+        Numpy dtype
+
+    Returns
+    -------
+    DataType
+        Inferred DataType.
+
+    Raises
+    ------
+    TypeError
+        If type of `dtype` is not numpy.dtype.
+    Exception
+        If `dtype.kind`=='O'
+    ClearboxWrapperException
+        If `dtype` is unsupported.
+    """
     if not isinstance(dtype, np.dtype):
         raise TypeError("Expected numpy.dtype, got '{}'.".format(type(dtype)))
     if dtype.kind == "b":
@@ -145,7 +157,7 @@ def _infer_numpy_dtype(dtype: np.dtype) -> DataType:
     elif dtype.kind == "O":
         raise Exception(
             "Can not infer np.object without looking at the values, call "
-            "_map_numpy_array instead."
+            "_infer_numpy_array instead."
         )
     raise ClearboxWrapperException(
         "Unsupported numpy data type '{0}', kind '{1}'".format(dtype, dtype.kind)
@@ -153,6 +165,25 @@ def _infer_numpy_dtype(dtype: np.dtype) -> DataType:
 
 
 def _infer_numpy_array(col: np.ndarray) -> DataType:
+    """Infer DataType of a numpy array.
+
+    Parameters
+    ----------
+    col : np.ndarray
+        Column representation as a numpy array.
+
+    Returns
+    -------
+    DataType
+        Inferred datatype.
+
+    Raises
+    ------
+    TypeError
+        If `col` is not a numpy array.
+    ClearboxWrapperException
+        If `col` is not a 1D array.
+    """
     if not isinstance(col, np.ndarray):
         raise TypeError("Expected numpy.ndarray, got '{}'.".format(type(col)))
     if len(col.shape) > 1:
@@ -175,7 +206,6 @@ def _infer_numpy_array(col: np.ndarray) -> DataType:
                 return False
 
     if col.dtype.kind == "O":
-        logger.debug("====> SONO O")
         is_binary_test = IsInstanceOrNone(bytes, bytearray)
         if all(map(is_binary_test, col)) and is_binary_test.seen_instances > 0:
             return DataType.binary
