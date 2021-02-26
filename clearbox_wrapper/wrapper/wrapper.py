@@ -234,9 +234,9 @@ def save_model(
         saved_data_preparation_subpath = "data_preparation.pkl"
         saved_preprocessing_subpath = "preprocessing.pkl"
         if input_data is not None:
-            if isinstance(input_data, pd.DataFrame) and input_data.shape[1] > 50:
+            if isinstance(input_data, pd.DataFrame) and input_data.shape[0] > 50:
                 input_data = input_data.head(50)
-            elif isinstance(input_data, np.ndarray) and input_data.shape[1] > 50:
+            elif isinstance(input_data, np.ndarray) and input_data.shape[0] > 50:
                 input_data = input_data[:50, :]
 
             data_preparation_output = preparation.prepare_data(input_data)
@@ -257,20 +257,12 @@ def save_model(
         data_preprocessing = Preprocessing(preprocessing)
         saved_preprocessing_subpath = "preprocessing.pkl"
         if input_data is not None:
-            if isinstance(input_data, pd.DataFrame) and input_data.shape[1] > 50:
-                input_data = input_data.head(50)
-            elif isinstance(input_data, np.ndarray) and input_data.shape[1] > 50:
-                input_data = input_data[:50, :]
             preprocessing_output = data_preprocessing.preprocess(input_data)
             preprocessing_signature = infer_signature(input_data, preprocessing_output)
             model_signature = infer_signature(preprocessing_output)
             mlmodel.preprocessing_signature = preprocessing_signature
             mlmodel.model_signature = model_signature
     elif input_data is not None:
-        if isinstance(input_data, pd.DataFrame) and input_data.shape[1] > 50:
-            input_data = input_data.head(50)
-        elif isinstance(input_data, np.ndarray) and input_data.shape[1] > 50:
-            input_data = input_data[:50, :]
         model_signature = infer_signature(input_data)
         mlmodel.model_signature = model_signature
 

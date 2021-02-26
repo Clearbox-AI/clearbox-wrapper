@@ -205,6 +205,62 @@ def x_and_y_preprocessing(x_dataframe):
     return x_encoder, y_encoder
 
 
+def _check_schema(pdf, input_schema):
+
+    if hasattr(pdf, "toarray"):
+        pdf = pdf.toarray()
+    if isinstance(pdf, (list, np.ndarray, dict)):
+        try:
+            pdf = pd.DataFrame(pdf)
+        except Exception as e:
+            message = (
+                "This model contains a model signature, which suggests a DataFrame input."
+                "There was an error casting the input data to a DataFrame: {0}".format(
+                    str(e)
+                )
+            )
+            raise cbw.ClearboxWrapperException(message)
+    if not isinstance(pdf, pd.DataFrame):
+        message = (
+            "Expected input to be DataFrame or list. Found: %s" % type(pdf).__name__
+        )
+        raise cbw.ClearboxWrapperException(message)
+
+    if input_schema.has_column_names():
+        # make sure there are no missing columns
+        col_names = input_schema.column_names()
+        expected_names = set(col_names)
+        actual_names = set(pdf.columns)
+        missing_cols = expected_names - actual_names
+        extra_cols = actual_names - expected_names
+        # Preserve order from the original columns, since missing/extra columns are likely to
+        # be in same order.
+        missing_cols = [c for c in col_names if c in missing_cols]
+        extra_cols = [c for c in pdf.columns if c in extra_cols]
+        if missing_cols:
+            print(
+                "Model input is missing columns {0}."
+                " Note that there were extra columns: {1}".format(
+                    missing_cols, extra_cols
+                )
+            )
+            return False
+    else:
+        # The model signature does not specify column names => we can only verify column count.
+        if len(pdf.columns) != len(input_schema.columns):
+            print(
+                "The model signature declares "
+                "{0} input columns but the provided input has "
+                "{1} columns. Note: the columns were not named in the signature so we can "
+                "only verify their count.".format(
+                    len(input_schema.columns), len(pdf.columns)
+                )
+            )
+            return False
+        col_names = pdf.columns[: len(input_schema.columns)]
+    return True
+
+
 def test_adult_pytorch_preprocessing(adult_training, adult_test, model_path):
     x_training, y_training = adult_training
     x_test, _ = adult_test
@@ -282,15 +338,13 @@ def test_adult_pytorch_preprocessing_and_data_preparation(
 
 
 def test_adult_pytorch_zipped_path_already_exists(
-    adult_training, adult_test, data_preparation, model_path
+    adult_training, adult_test, model_path
 ):
     x_training, y_training = adult_training
     x_test, _ = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
 
-    x_training_prepared = data_preparation(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
-
-    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    x_train_transformed = x_preprocessor.fit_transform(x_training)
     x_train_transformed = torch.Tensor(x_train_transformed.todense())
 
     y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
@@ -306,32 +360,20 @@ def test_adult_pytorch_zipped_path_already_exists(
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
-    cbw.save_model(
-        model_path,
-        model,
-        preprocessing=preprocessing_function,
-        data_preparation=data_preparation,
-    )
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
 
     with pytest.raises(cbw.ClearboxWrapperException):
         cbw.save_model(
-            model_path,
-            model,
-            preprocessing=preprocessing_function,
-            data_preparation=data_preparation,
+            model_path, model, preprocessing=preprocessing_function, zip=False
         )
 
 
-def test_adult_pytorch_path_already_exists(
-    adult_training, adult_test, data_preparation, model_path
-):
+def test_adult_pytorch_path_already_exists(adult_training, adult_test, model_path):
     x_training, y_training = adult_training
     x_test, _ = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
 
-    x_training_prepared = data_preparation(x_training)
-    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
-
-    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    x_train_transformed = x_preprocessor.fit_transform(x_training)
     x_train_transformed = torch.Tensor(x_train_transformed.todense())
 
     y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
@@ -347,19 +389,121 @@ def test_adult_pytorch_path_already_exists(
     model.train()
     train(model, x_train_transformed, y_train_transformed)
 
+    cbw.save_model(model_path, model, preprocessing=preprocessing_function, zip=False)
+
+    with pytest.raises(cbw.ClearboxWrapperException):
+        cbw.save_model(
+            model_path, model, preprocessing=preprocessing_function, zip=False
+        )
+
+
+def test_adult_pytorch_preprocessing_check_model_and_preprocessing_signature(
+    adult_training, adult_test, model_path
+):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training)
+
+    x_train_transformed = x_preprocessor.fit_transform(x_training)
+    x_train_transformed_torch = torch.Tensor(x_train_transformed.todense())
+
+    y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
+    y_train_transformed_torch = torch.Tensor(y_train_transformed.todense())
+
+    def preprocessing_function(x_data):
+        x_transformed = x_preprocessor.transform(x_data)
+        return x_transformed.todense()
+
+    model = AdultModel(x_train_transformed_torch.shape[1])
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.train()
+    train(model, x_train_transformed_torch, y_train_transformed_torch)
+
     cbw.save_model(
         model_path,
         model,
         preprocessing=preprocessing_function,
-        data_preparation=data_preparation,
+        input_data=x_training,
         zip=False,
     )
 
-    with pytest.raises(cbw.ClearboxWrapperException):
-        cbw.save_model(
-            model_path,
-            model,
-            preprocessing=preprocessing_function,
-            data_preparation=data_preparation,
-            zip=False,
-        )
+    loaded_model = cbw.load_model(model_path)
+
+    x_test_transformed = preprocessing_function(x_test)
+    x_test_transformed = torch.Tensor(x_test_transformed)
+    original_model_predictions = model(x_test_transformed).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
+
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+    mlmodel = cbw.Model.load(model_path)
+    preprocessing_input_schema = mlmodel.get_preprocessing_input_schema()
+    preprocessing_output_schema = mlmodel.get_preprocessing_output_schema()
+    model_input_schema = mlmodel.get_model_input_schema()
+
+    assert _check_schema(x_training, preprocessing_input_schema)
+    assert _check_schema(x_train_transformed, preprocessing_output_schema)
+    assert _check_schema(x_train_transformed, model_input_schema)
+    assert preprocessing_output_schema == model_input_schema
+
+
+def test_adult_pytorch_check_model_preprocessing_and_data_preparation_signature(
+    adult_training, adult_test, data_preparation, model_path
+):
+    x_training, y_training = adult_training
+    x_test, _ = adult_test
+
+    x_training_prepared = data_preparation(x_training)
+    x_preprocessor, y_encoder = x_and_y_preprocessing(x_training_prepared)
+
+    x_train_transformed = x_preprocessor.fit_transform(x_training_prepared)
+    x_train_transformed_torch = torch.Tensor(x_train_transformed.todense())
+
+    y_train_transformed = y_encoder.fit_transform(y_training.values.reshape(-1, 1))
+    y_train_transformed_torch = torch.Tensor(y_train_transformed.todense())
+
+    def preprocessing_function(x_data):
+        x_transformed = x_preprocessor.transform(x_data)
+        return x_transformed.todense()
+
+    model = AdultModel(x_train_transformed_torch.shape[1])
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.train()
+    train(model, x_train_transformed_torch, y_train_transformed_torch)
+
+    cbw.save_model(
+        model_path,
+        model,
+        preprocessing=preprocessing_function,
+        data_preparation=data_preparation,
+        input_data=x_training,
+        zip=False,
+    )
+    loaded_model = cbw.load_model(model_path)
+
+    x_test_prepared = data_preparation(x_test)
+    x_test_transformed = preprocessing_function(x_test_prepared)
+    x_test_transformed = torch.Tensor(x_test_transformed)
+
+    original_model_predictions = model(x_test_transformed).detach().numpy()
+    loaded_model_predictions = loaded_model.predict(x_test)
+
+    np.testing.assert_array_equal(original_model_predictions, loaded_model_predictions)
+
+    mlmodel = cbw.Model.load(model_path)
+    data_preparation_input_schema = mlmodel.get_data_preparation_input_schema()
+    data_preparation_output_schema = mlmodel.get_data_preparation_output_schema()
+    preprocessing_input_schema = mlmodel.get_preprocessing_input_schema()
+    preprocessing_output_schema = mlmodel.get_preprocessing_output_schema()
+    model_input_schema = mlmodel.get_model_input_schema()
+
+    assert _check_schema(x_training, data_preparation_input_schema)
+    assert _check_schema(x_training_prepared, data_preparation_output_schema)
+    assert _check_schema(x_training_prepared, preprocessing_input_schema)
+    assert _check_schema(x_train_transformed, preprocessing_output_schema)
+    assert _check_schema(x_train_transformed, model_input_schema)
+    assert not _check_schema(x_training, model_input_schema)
+    assert data_preparation_output_schema == preprocessing_input_schema
+    assert preprocessing_output_schema == model_input_schema

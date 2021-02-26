@@ -1,6 +1,5 @@
 from sys import version_info
 
-from loguru import logger
 import numpy as np
 import pandas as pd
 import pytest
@@ -55,10 +54,7 @@ def drop_column_transformer():
 
 def _check_schema(pdf, input_schema):
 
-    logger.warning("-- input type: {}".format(type(pdf)))
-    logger.warning("-- input:\n {}".format(pdf.shape))
     if isinstance(pdf, (list, np.ndarray, dict)):
-        logger.warning("-- Sono entrato nel primo IF.")
         try:
             pdf = pd.DataFrame(pdf)
         except Exception as e:
@@ -76,7 +72,6 @@ def _check_schema(pdf, input_schema):
         raise cbw.ClearboxWrapperException(message)
 
     if input_schema.has_column_names():
-        logger.warning("-- input_schema.has_column_names.")
         # make sure there are no missing columns
         col_names = input_schema.column_names()
         expected_names = set(col_names)
@@ -96,18 +91,11 @@ def _check_schema(pdf, input_schema):
             )
             return False
     else:
-        logger.warning("-- input_schema.has_NOT_column_names.")
         # The model signature does not specify column names => we can only verify column count.
-        logger.warning("-- pdf.columns: {}".format(pdf.columns))
-        logger.warning("-- len pdf.columns: {}".format(len(pdf.columns)))
-        logger.warning("-- input_schema.columns: {}".format(input_schema.columns))
-        logger.warning(
-            "-- len input_schema.columns: {}".format(len(input_schema.columns))
-        )
-        if len(pdf.columns) < len(input_schema.columns):
+        if len(pdf.columns) != len(input_schema.columns):
             print(
-                "Model input is missing input columns. The model signature declares "
-                "{0} input columns but the provided input only has "
+                "The model signature declares "
+                "{0} input columns but the provided input has "
                 "{1} columns. Note: the columns were not named in the signature so we can "
                 "only verify their count.".format(
                     len(input_schema.columns), len(pdf.columns)
