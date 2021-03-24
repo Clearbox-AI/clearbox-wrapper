@@ -43,6 +43,8 @@ def _infer_schema(data: Any) -> Schema:
     """
     if hasattr(data, "toarray"):
         data = data.toarray()
+    elif hasattr(data, "detach"):
+        data = data.detach().numpy()
     if isinstance(data, dict):
         res = []
         for col in data.keys():
