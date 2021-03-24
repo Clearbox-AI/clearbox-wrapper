@@ -347,7 +347,7 @@ class _PyTorchWrapper(object):
         elif isinstance(data, np.ndarray):
             inp_data = data
         elif isinstance(data, torch.Tensor):
-            inp_data = data.detach().numpy
+            inp_data = data.detach().numpy()
         elif isinstance(data, (list, dict)):
             raise TypeError(
                 "The PyTorch flavor does not support List or Dict input types. "
