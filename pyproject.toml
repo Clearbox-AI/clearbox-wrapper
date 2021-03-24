@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "clearbox-wrapper"
-version = "0.3.7"
+version = "0.3.8"
 description = "An agnostic wrapper for the most common frameworks of ML models."
 authors = ["Clearbox AI <info@clearbox.ai>"]
 license = "Apache-2.0"
