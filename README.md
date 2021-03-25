@@ -4,13 +4,15 @@
 
 # Clearbox AI Wrapper
 
-Clearbox AI Wrapper is a Python library to package and save a Machine Learning model built with common ML/DL frameworks. It is designed to wrap models trained on strutured data. It includes optional **preprocessing** and **data preparation** functions which can be used to build ready-to-production pipelines.
+Clearbox AI Wrapper is a Python library to package and save a Machine Learning model built with common ML/DL frameworks. It is designed to wrap models trained on structured (tabular) data. It includes optional **preprocessing** and **data preparation** arguments which can be used to build ready-to-production pipelines.
+
+Passing the original training set on which the model is trained as `input_data` parameter, a **model signature** will be generated. A signature is a description of the final pipeline's inputs and outputs. The signature is stored in JSON format in the MLmodel file, together with other model metadata.
 
 ## Main Features
 
 The wrapper was born as a fork from [mlflow](https://github.com/mlflow/mlflow) and it's based on its [standard format](https://mlflow.org/docs/latest/models.html). It adds the possibility to package, together with the fitted model, preprocessing and data preparation functions in order to create a production-ready pipeline able to receive new data, preprocess them and makes predictions. The resulting wrapped model/pipeline is saved as a zipped folder.
 
-The library is designed to automatically detect the model framework and its version adding this information to the requirements saved into the final folder. Additional dependencies (e.g. libraries used in preprocessing or data preparation) can also be added as a list parameter if necessary.
+The library is designed to automatically detect the Python version, the model framework and its version adding this information to the requirements saved into the final folder. Additional dependencies (e.g. libraries used in preprocessing or data preparation) can also be added as a list parameter if necessary.
 
 The resulting wrapped folder can be loaded via the Wrapper and the model will be ready to take input through the `predict` or `predict_proba` (if present) method.
 
@@ -29,7 +31,7 @@ import clearbox_wrapper as cbw
 
 model = DecisionTreeClassifier(max_depth=4, random_state=42)
 model.fit(X_train, y_train)
-cbw.save_model('wrapped_model_path', model)
+cbw.save_model('wrapped_model_path', model, input_data=X_train)
 ```
 
 ## Preprocessing
@@ -59,7 +61,11 @@ x_preprocessed = x_preprocessor.fit_transform(x)
 
 model = xgb.XGBClassifier(use_label_encoder=False)
 fitted_model = model.fit(x_preprocessed, y)
-cbw.save_model('wrapped_model_path', fitted_model, preprocessing=x_preprocessor)
+cbw.save_model('wrapped_model_path',
+                fitted_model,
+                preprocessing=x_preprocessor,
+                input_data=X_train,
+                additional_deps=["scikit-learn==0.23.2"])
 ```
 
 ## Data Preparation (advanced usage)
@@ -103,7 +109,9 @@ cbw.save_model(
     'wrapped_model_path',
     model,
     preprocessing=x_preprocessor,
-    data_preparation=preparation
+    data_preparation=preparation,
+    input_data=X_train,
+    additional_deps=["scikit-learn==0.23.2", "numpy==1.18.0"]
 )
 ```
 
@@ -127,6 +135,7 @@ Install the latest relased version on the [Python Package Index (PyPI)](https://
 ```shell
 pip install clearbox-wrapper
 ```
+
 ## Examples
 
 The following Jupyter notebooks provide examples of simle and complex cases:
