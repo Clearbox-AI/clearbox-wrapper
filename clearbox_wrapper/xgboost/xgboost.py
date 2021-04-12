@@ -174,6 +174,8 @@ class _XGBModelWrapper:
         return self.xgb_model.predict(xgb.DMatrix(dataframe))
 
     def predict_proba(self, dataframe):
+        if not hasattr(self.xgb_model, "predict_proba"):
+            raise ClearboxWrapperException("This model has no predict_proba method.")
         import xgboost as xgb
 
         return self.xgb_model.predict_proba(xgb.DMatrix(dataframe))
